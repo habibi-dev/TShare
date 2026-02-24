@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{code}} - {{title}}</title>
+    <link rel="stylesheet" href="{{url}}css/style.css?ver={{version}}">
+    <link rel="icon" href="{{url}}favicon.ico?ver={{version}}" sizes="any">
+    <meta name="theme-color" content="#e50561">
+</head>
+<body>
+<div class="background-animation">
+    <div class="floating-sphere sphere-1"></div>
+    <div class="floating-sphere sphere-2"></div>
+    <div class="floating-sphere sphere-3"></div>
+</div>
+<header>
+    <div>
+        <div class="right">
+            <ul>
+                <li>
+                    <a href="{{url}}history">لینک های شما</a>
+                </li>
+            </ul>
+        </div>
+        <div class="left">
+            <a href="{{url}}">
+                <img src="{{url}}icon.png?ver={{version}}" alt="TShare.ir" class="logo">
+                <h1>TShare.ir</h1>
+            </a>
+        </div>
+    </div>
+</header>
+
+<div class="content">
+    <h1 style="font-size: 6rem; margin: 0; color: #e50561;">{{code}}</h1>
+    <h2 style="margin: 20px 0; font-size: 1.2rem;font-weight: bolder">{{title}}</h2>
+    <p style="font-size: 1rem; margin-bottom: 40px; opacity: 0.9; color: #4a5568">{{message}}</p>
+
+    <a href="/" class="submit-btn"
+       style="padding: 14px 20px; font-size: 1rem; text-decoration: none;font-weight: 300;flex: 0">
+        بازگشت به خانه
+    </a>
+</div>
+
+<footer>
+    <div><a href="https://habibi-dev.blogfa.com/page/support" class="donate-link" target="_blank">با یه قهوه ازم حمایت کن ☕</a>
+        <p>Built with ❤️ • Powered by Rust - v{{version}}</p></div>
+</footer>
+</body>
+</html>

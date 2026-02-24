@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>TShare.ir | اشتراک امن و موقت متن</title>
+    <link rel="stylesheet" href="{{url}}css/style.css?ver={{version}}">
+    <meta name="description"
+          content="ابزار ساده برای اشتراک‌گذاری یادداشت‌ها و متن‌های کوتاه. بدون ثبت‌نام، لینک ایجاد کنید و محتوا را به راحتی منتقل کنید.">
+    <meta property="og:title" content="TShare.ir | اشتراک امن و موقت متن">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{url}}">
+    <meta property="og:image" content="{{url}}img/og-preview.png?ver={{version}}">
+    <meta property="og:description"
+          content="ابزار ساده برای اشتراک‌گذاری یادداشت‌ها و متن‌های کوتاه. مناسب برای ارسال آدرس، شماره تماس یا یادداشت‌های روزمره.">
+    <meta property="og:locale" content="fa_IR">
+    <meta property="og:image:alt" content="TShare.ir | اشتراک امن و موقت متن">
+    <link rel="icon" href="{{url}}favicon.ico?ver={{version}}" sizes="any">
+    <link rel="icon" href="{{url}}icon.svg?ver={{version}}" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="{{url}}icon.png?ver={{version}}">
+    <link rel="manifest" href="{{url}}site.webmanifest?ver={{version}}">
+    <meta name="theme-color" content="#e50561">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <script defer="defer" src="{{url}}js/app.js?ver={{version}}"></script>
+</head>
+<body>
+<div class="background-animation">
+    <div class="floating-sphere sphere-1"></div>
+    <div class="floating-sphere sphere-2"></div>
+    <div class="floating-sphere sphere-3"></div>
+</div>
+<header>
+    <div>
+        <div class="right">
+            <ul>
+                <li><a href="{{url}}history">لینک های شما</a></li>
+            </ul>
+        </div>
+        <div class="left"><a href="{{url}}"><img src="{{url}}icon.png?ver={{version}}" alt="TShare.ir" class="logo">
+            <h1>TShare.ir</h1></a></div>
+    </div>
+</header>
+<div class="content">
+    <div class="header"><h2>اشتراک امن و موقت متن</h2>
+        <p>ابزار ساده برای اشتراک‌گذاری یادداشت‌ها و متن‌های کوتاه.<br/>بدون ثبت‌نام، لینک ایجاد کنید و به اشتراک
+            بگذارید، مثل ارسال آدرس، شماره تماس، یا دستورالعمل‌های کاری.</p></div>
+    <div class="home">
+        <button type="button" class="submit-btn" id="createLink">اشتراک‌گذاری</button>
+        <button type="button" class="show-btn" id="showLonk">مشاهده</button>
+    </div>
+
+    <form class="form" id="showForm">
+        <div class="input-wrapper" id="show-id-wrapper">
+            <label for="show-id">
+                <input type="text" maxlength="6" minlength="6" id="show-id" name="show-id" autofocus autocapitalize="off" autocomplete="off"
+                       placeholder="شناسه خود را وارد کنید">
+            </label>
+        </div>
+        <div class="footer">
+            <button type="submit" class="submit-show-btn">مشاهده اشتراک‌گذاری</button>
+            <button type="button" class="back-btn">بازگشت</button>
+        </div>
+    </form>
+    <form class="form" id="shareForm">
+        <div class="alert" style="margin-bottom: 0">
+            <p>کاربر گرامی ، حسب نظر مقام قضایی لطفا از ارسال فایل‌ها و کانفیگ‌های مربوط به VPN خودداری کنید.</p>
+        </div>
+        <div class="input-wrapper"><label for="note"><textarea
+                placeholder="تهران، خیابان ولیعصر، نرسیده به میدان ونک، پلاک ۱۲۳ - کد پستی: 123456789" name="note"
+                id="note" cols="30" rows="5" maxlength="10000" required></textarea></label>
+            <div class="input-wrapper-counter"><span>10000</span><span>/</span><span class="used">0</span></div>
+        </div>
+        <div class="security-options">
+            <div class="security-option"><input type="checkbox" id="oneTimeUse" name="oneTimeUse"> <label
+                    for="oneTimeUse">یک‌بار مصرف</label></div>
+            <div class="security-option"><input type="checkbox" id="restrictIp" name="restrictIp"> <label
+                    for="restrictIp">محدود به IP خاص</label></div>
+            <div class="security-option"><input type="checkbox" id="requirePassword" name="requirePassword"> <label
+                    for="requirePassword">نیاز به رمز عبور</label></div>
+        </div>
+        <div class="password-wrapper" id="passwordWrapper" style="display: none;"><label for="password">
+            <input maxlength="24" type="password" id="password" name="password" autocapitalize="off" autocomplete="off"
+                   placeholder="رمز عبور را وارد کنید"></label></div>
+        <div class="ip-wrapper" id="ipWrapper" style="display: none;"><label for="ip"><input dir="ltr" id="ip" name="ip"
+                                                                                             placeholder="5.10.x.x"
+                                                                                             pattern="^(\d{1,3}\.){3}\d{1,3}$"></label>
+        </div>
+        <div class="options">
+            <div class="option-row"><label for="expiry">مدت انقضا:</label> <select name="expiry" id="expiry">
+                <option value="5" selected="selected">۵ دقیقه</option>
+                <option value="10">۱۰ دقیقه</option>
+                <option value="30">۳۰ دقیقه</option>
+                <option value="60">۱ ساعت</option>
+                <option value="180">۳ ساعت</option>
+                <option value="360">۶ ساعت</option>
+                <option value="720">۱۲ ساعت</option>
+                <option value="1440">۲۴ ساعت</option>
+            </select></div>
+            <div class="option-row"><label for="maxViews">حداکثر تعداد بازدید:</label> <select name="maxViews"
+                                                                                               id="maxViews">
+                <option value="v1">۱ بار</option>
+                <option value="v5">۵ بار</option>
+                <option value="v10">۱۰ بار</option>
+                <option value="unlimited" selected="selected">نامحدود</option>
+            </select></div>
+        </div>
+        <div class="footer">
+            <button type="submit" class="submit-btn">ایجاد اشتراک‌گذاری</button>
+            <button type="button" class="back-btn">بازگشت</button>
+        </div>
+    </form>
+    <p class="stats">تا این لحظه، <span>{{used}}</span> متن به اشتراک گذاشته شده است.</p></div>
+<footer>
+    <div><a href="https://habibi-dev.blogfa.com/page/support" class="donate-link" target="_blank">با یه قهوه ازم حمایت کن ☕</a>
+        <p>Built with ❤️ • Powered by Rust - v{{version}}</p></div>
+</footer>
+</body>
+</html>

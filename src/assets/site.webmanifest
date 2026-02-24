@@ -1,0 +1,19 @@
+{
+  "short_name": "TShare",
+  "name": "TShare.ir - اشتراک متن موقت",
+  "description": "سریع‌ترین و امن‌ترین راه برای اشتراک متن‌های موقت با لینک خودپاک‌شونده",
+  "icons": [{
+    "src": "/icon.png",
+    "type": "image/png",
+    "sizes": "192x192"
+  }, {
+    "src": "/icon-512.png",
+    "type": "image/png",
+    "sizes": "512x512"
+  }],
+  "start_url": "/?utm_source=homescreen",
+  "background_color": "#f5f5f5",
+  "theme_color": "#e50561",
+  "display": "standalone",
+  "scope": "/"
+}

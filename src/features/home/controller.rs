@@ -50,6 +50,7 @@ pub struct ErrorTemplate {
 pub struct ShowTemplate {
     pub(crate) version: String,
     pub(crate) url: String,
+    pub(crate) count: String,
     pub(crate) note: String,
     pub(crate) id: String,
 }

@@ -42,10 +42,11 @@ impl ShareController {
                 ShowTemplate {
                     version: context.version,
                     url: context.url,
+                    count: share_form.viewed.unwrap_or(0).to_string(),
                     id,
                     note: share_form.note.unwrap(),
                 }
-                .into_response()
+                    .into_response()
             }
             Err(error) => {
                 let context = crate::features::home::controller::BaseContext::new();

@@ -6,6 +6,8 @@ pub struct ShareForm {
     pub expiry: Option<Expiry>,
     pub max_views: Option<MaxViews>,
     pub viewed: Option<u64>,
+    /// Set after a one-time file share is downloaded (page views use `viewed`).
+    pub downloaded: Option<bool>,
     pub one_time_use: Option<bool>,
     pub restrict_ip: Option<bool>,
     pub require_password: Option<bool>,

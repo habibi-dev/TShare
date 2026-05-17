@@ -10,10 +10,11 @@ use crate::features::storage::config::FileDownloadMode;
 use crate::features::storage::ratelimit::FileRateLimiter;
 use crate::features::storage::service::StorageService;
 use crate::utility::state::app_state;
+use crate::utility::url::append_password_query;
 use axum::body::Body;
 use axum::extract::{Path, Query};
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
-use axum::response::{IntoResponse, Redirect, Response};
+use axum::response::{IntoResponse, Response};
 use axum::{Json, extract::Multipart};
 use mime_guess::from_path;
 
@@ -39,6 +40,7 @@ impl ShareController {
         headers: HeaderMap,
     ) -> Response {
         let id = key.clone();
+        let download_password = query.password.clone();
         let request = ShowRequest {
             key,
             password: query.password,
@@ -68,6 +70,14 @@ impl ShareController {
                             StorageService::from_state()
                                 .ok()
                                 .and_then(|s| s.build_download_url(stored, &id))
+                                .map(|mut url| {
+                                    if let Some(ref pwd) = download_password {
+                                        if !pwd.is_empty() {
+                                            url = append_password_query(&url, pwd);
+                                        }
+                                    }
+                                    url
+                                })
                                 .unwrap_or_default()
                         } else {
                             String::new()
@@ -180,19 +190,28 @@ impl ShareController {
             });
         }
 
+        let password = query.password.clone();
+        let client_ip_str = client_ip
+            .map(|ip| ip.to_string())
+            .unwrap_or_else(|| "unknown".to_string());
         let request = crate::features::share::validation::share_show::ShowRequest {
             key: key.clone(),
-            password: query.password,
-            ip: client_ip
-                .map(|ip| ip.to_string())
-                .unwrap_or_else(|| "unknown".to_string()),
+            password,
+            ip: client_ip_str.clone(),
         };
 
-        let share = match ShareService::authorize_file_download(request).await {
+        let share = match ShareService::authorize_file_download(&request).await {
             Ok(s) => s,
             Err(error) => {
                 if error.code == "401" {
-                    return Redirect::temporary(&format!("/c/{}", key)).into_response();
+                    return crate::features::home::controller::ShowPasswordTemplate {
+                        version: context.version,
+                        url: context.url,
+                        message: error.message.to_string().parse().unwrap_or(
+                            "برای دانلود فایل وارد کردن پسورد الزامی می باشد.".to_string(),
+                        ),
+                    }
+                    .into_response();
                 }
                 return Self::download_error(ErrorTemplate {
                     version: context.version.clone(),
@@ -244,6 +263,18 @@ impl ShareController {
                 });
             }
         };
+
+        if share.one_time_use.unwrap_or(false) {
+            if let Err(error) = ShareService::consume_file_download(&request).await {
+                return Self::download_error(ErrorTemplate {
+                    version: context.version.clone(),
+                    url: context.url.clone(),
+                    code: error.code,
+                    title: error.title,
+                    message: error.message,
+                });
+            }
+        }
 
         let mime = from_path(original).first_or_octet_stream();
         let disposition = format!(

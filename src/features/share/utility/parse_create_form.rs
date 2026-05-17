@@ -131,6 +131,7 @@ pub async fn parse_create_multipart(
         expiry,
         max_views,
         viewed: None,
+        downloaded: None,
         one_time_use,
         restrict_ip,
         require_password,

@@ -41,8 +41,16 @@ impl ShareRetrieve {
     pub async fn authorize_download(request: &ShowRequest) -> Result<ShareForm, ShareError> {
         let share_data = Self::get_data(&request.key).await?;
         Self::validate_access(&share_data, request)?;
-        Self::check_limits(&share_data)?;
+        Self::check_download_limits(&share_data)?;
         Ok(share_data)
+    }
+
+    /// Marks a one-time file share as consumed after a successful download.
+    pub async fn consume_download(request: &ShowRequest) -> Result<(), ShareError> {
+        let mut share_data = Self::get_data(&request.key).await?;
+        Self::validate_access(&share_data, request)?;
+        share_data.downloaded = Some(true);
+        Self::update_data(&request.key, &share_data).await
     }
 
     pub async fn execute(request: ShowRequest) -> Result<ShareForm, ShareError> {
@@ -53,7 +61,7 @@ impl ShareRetrieve {
         Self::validate_access(&share_data, &request)?;
 
         // Check view limits
-        Self::check_limits(&share_data)?;
+        Self::check_show_limits(&share_data)?;
 
         // Increment view counter
         share_data.viewed = Some(share_data.viewed.unwrap_or(0) + 1);
@@ -177,19 +185,33 @@ impl ShareRetrieve {
         }
     }
 
-    fn check_limits(share_data: &ShareForm) -> Result<(), ShareError> {
-        let current_views = share_data.viewed.unwrap_or(0);
+    fn has_attached_file(share_data: &ShareForm) -> bool {
+        share_data.file_stored_name.is_some()
+    }
 
-        // Check one-time use
-        if share_data.one_time_use.unwrap_or(false) && current_views > 1 {
-            error!(target: "system", "One-time share already viewed");
-            return Err(ShareError::new(
-                StatusCode::GONE,
-                "این اشتراک گذاری یکبار مصرف بوده و قبلاً مشاهده شده است.".to_string(),
-            ));
+    fn one_time_consumed_error() -> ShareError {
+        ShareError::new(
+            StatusCode::GONE,
+            "این اشتراک گذاری یکبار مصرف بوده و قبلاً استفاده شده است.".to_string(),
+        )
+    }
+
+    fn check_show_limits(share_data: &ShareForm) -> Result<(), ShareError> {
+        let current_views = share_data.viewed.unwrap_or(0);
+        let one_time = share_data.one_time_use.unwrap_or(false);
+
+        if one_time {
+            if Self::has_attached_file(share_data) {
+                if share_data.downloaded.unwrap_or(false) {
+                    error!(target: "system", "One-time file share already downloaded");
+                    return Err(Self::one_time_consumed_error());
+                }
+            } else if current_views >= 1 {
+                error!(target: "system", "One-time text share already viewed");
+                return Err(Self::one_time_consumed_error());
+            }
         }
 
-        // Check max views
         if let Some(ref max_views) = share_data.max_views {
             let limit = max_views.as_int();
 
@@ -200,6 +222,15 @@ impl ShareRetrieve {
                     "حداکثر تعداد مشاهده به پایان رسیده است.".to_string(),
                 ));
             }
+        }
+
+        Ok(())
+    }
+
+    fn check_download_limits(share_data: &ShareForm) -> Result<(), ShareError> {
+        if share_data.one_time_use.unwrap_or(false) && share_data.downloaded.unwrap_or(false) {
+            error!(target: "system", "One-time file share already downloaded");
+            return Err(Self::one_time_consumed_error());
         }
 
         Ok(())

@@ -1,10 +1,11 @@
 use crate::core::app_error::{handle_normalize_error, handle_tower_error};
 use crate::core::logger::targets;
 use crate::core::state::AppState;
+use crate::utility::state::app_state;
 use crate::features::home::controller::HomeController;
 use axum::error_handling::HandleErrorLayer;
 use axum::extract::{Path, Request};
-use axum::http::{StatusCode, header};
+use axum::http::{HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::{Router as AxumRouter, body::Body, middleware};
@@ -48,7 +49,33 @@ impl Router {
                     .into_inner(),
             )
             .route_layer(middleware::from_fn(handle_normalize_error))
+            .route_layer(middleware::from_fn(Self::security_headers))
             .route_layer(middleware::from_fn(Self::log_requests))
+    }
+
+    async fn security_headers(req: Request<Body>, next: middleware::Next) -> Response {
+        let mut response = next.run(req).await;
+        let headers = response.headers_mut();
+        headers.insert(
+            header::X_CONTENT_TYPE_OPTIONS,
+            HeaderValue::from_static("nosniff"),
+        );
+        headers.insert(header::X_FRAME_OPTIONS, HeaderValue::from_static("DENY"));
+        headers.insert(
+            header::REFERRER_POLICY,
+            HeaderValue::from_static("no-referrer"),
+        );
+        headers.insert(
+            header::HeaderName::from_static("permissions-policy"),
+            HeaderValue::from_static("geolocation=(), microphone=(), camera=()"),
+        );
+        if app_state().config.https {
+            headers.insert(
+                header::STRICT_TRANSPORT_SECURITY,
+                HeaderValue::from_static("max-age=63072000; includeSubDomains"),
+            );
+        }
+        response
     }
 
     async fn log_requests(req: Request<Body>, next: middleware::Next) -> Response {
@@ -74,6 +101,10 @@ impl Router {
 
     pub async fn assets(Path(path): Path<String>) -> impl IntoResponse {
         let path = path.trim_start_matches('/');
+
+        if path.contains("..") || path.contains('\\') {
+            return HomeController::not_found().await.into_response();
+        }
 
         match Assets::get(path) {
             Some(content) => {

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use validator::Validate;
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 pub struct ShareForm {
+    #[validate(length(max = 10000))]
     pub note: Option<String>,
     pub expiry: Option<Expiry>,
     pub max_views: Option<MaxViews>,

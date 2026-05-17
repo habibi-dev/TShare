@@ -23,14 +23,8 @@ impl ShareService {
         ShareRetrieve::execute(request).await
     }
 
-    pub async fn authorize_file_download(
-        request: &ShowRequest,
-    ) -> Result<ShareForm, ShareError> {
-        ShareRetrieve::authorize_download(request).await
-    }
-
-    pub async fn consume_file_download(request: &ShowRequest) -> Result<(), ShareError> {
-        ShareRetrieve::consume_download(request).await
+    pub async fn access_file_download(request: &ShowRequest) -> Result<ShareForm, ShareError> {
+        ShareRetrieve::access_file_download(request).await
     }
 
     // pub async fn update(request: UpdateRequest) -> Response {

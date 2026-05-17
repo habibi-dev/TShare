@@ -7,6 +7,8 @@ use std::time::Duration;
 use tracing::{error, info};
 
 pub const CLEANUP_ZSET_KEY: &str = "file_cleanup";
+const CLEANUP_LOCK_KEY: &str = "file_cleanup:lock";
+const CLEANUP_LOCK_SECS: i64 = 55;
 
 pub fn register_cleanup_job(interval_secs: u64) -> CronManager {
     let interval = Duration::from_secs(interval_secs.max(10));
@@ -33,6 +35,21 @@ async fn run_file_cleanup() {
 
     let now = Utc::now().timestamp() as f64;
     let mut redis = state.redis.as_ref().clone();
+
+    let lock_acquired: bool = redis::cmd("SET")
+        .arg(CLEANUP_LOCK_KEY)
+        .arg("1")
+        .arg("NX")
+        .arg("EX")
+        .arg(CLEANUP_LOCK_SECS)
+        .query_async::<Option<String>>(&mut redis)
+        .await
+        .map(|v| v.is_some())
+        .unwrap_or(false);
+
+    if !lock_acquired {
+        return;
+    }
 
     let expired: Vec<String> = match redis.zrangebyscore(CLEANUP_ZSET_KEY, 0.0, now).await {
         Ok(keys) => keys,

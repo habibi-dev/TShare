@@ -37,6 +37,8 @@ pub struct FileRateLimitConfig {
     pub download_window_secs: u64,
     pub download_max_per_share_per_window: u64,
     pub download_share_window_secs: u64,
+    pub show_max_per_window: u64,
+    pub show_window_secs: u64,
 }
 
 impl FileRateLimitConfig {
@@ -87,6 +89,16 @@ impl FileRateLimitConfig {
             .parse()
             .unwrap_or(3600);
 
+        let show_max_per_window = env::var("FILE_SHOW_MAX_PER_WINDOW")
+            .unwrap_or_else(|_| "60".into())
+            .parse()
+            .unwrap_or(60);
+
+        let show_window_secs = env::var("FILE_SHOW_WINDOW_SECS")
+            .unwrap_or_else(|_| "60".into())
+            .parse()
+            .unwrap_or(60);
+
         Self {
             enabled,
             upload_max_per_window,
@@ -97,6 +109,8 @@ impl FileRateLimitConfig {
             download_window_secs,
             download_max_per_share_per_window,
             download_share_window_secs,
+            show_max_per_window,
+            show_window_secs,
         }
     }
 }
@@ -204,5 +218,14 @@ impl FileUploadConfig {
         let mut list: Vec<&str> = self.allowed_extensions.iter().map(String::as_str).collect();
         list.sort();
         list.join(", ")
+    }
+
+    /// File shares with password, IP lock, or one-time use must use proxy download.
+    pub fn file_requires_proxy_download(
+        require_password: bool,
+        restrict_ip: bool,
+        one_time_use: bool,
+    ) -> bool {
+        require_password || restrict_ip || one_time_use
     }
 }

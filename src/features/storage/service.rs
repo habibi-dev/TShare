@@ -82,8 +82,19 @@ impl StorageService {
         let _: Result<(), _> = redis.zrem(CLEANUP_ZSET_KEY, stored_name).await;
     }
 
-    pub fn build_download_url(&self, stored_name: &str, share_key: &str) -> Option<String> {
-        match self.config.download_mode {
+    pub fn build_download_url(
+        &self,
+        stored_name: &str,
+        share_key: &str,
+        force_proxy: bool,
+    ) -> Option<String> {
+        let mode = if force_proxy {
+            FileDownloadMode::Proxy
+        } else {
+            self.config.download_mode
+        };
+
+        match mode {
             FileDownloadMode::Direct => {
                 let base = self.config.public_base_url.trim();
                 if base.is_empty() {

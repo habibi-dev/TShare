@@ -8,6 +8,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
+use std::net::IpAddr;
 use std::{env, fs};
 use tracing::{error, info, warn};
 
@@ -31,6 +32,8 @@ pub struct Config {
     pub browser_start_timeout_seconds: u64,
     pub log_directory: String,
     pub log_retention_days: u64,
+    /// TCP peers allowed to set X-Forwarded-For / X-Real-IP (typically reverse proxies).
+    pub trusted_proxies: Vec<IpAddr>,
 }
 
 impl Config {
@@ -83,13 +86,13 @@ impl Config {
         Ok(db)
     }
 
-    pub async fn setup_redis() -> RedisConn {
+    pub async fn setup_redis() -> Result<RedisConn> {
         let redis_url = Self::redis_url();
-        let client = Client::open(redis_url).expect("Invalid Redis URL");
+        let client = Client::open(redis_url).context("Invalid Redis URL")?;
         let manager = ConnectionManager::new(client)
             .await
-            .expect("Redis connection failed");
-        Arc::new(manager)
+            .context("Redis connection failed")?;
+        Ok(Arc::new(manager))
     }
 
     fn build_connect_options(database_url: &str) -> ConnectOptions {
@@ -127,7 +130,16 @@ impl Config {
             browser_start_timeout_seconds: Self::browser_start_timeout_seconds(),
             log_directory: Self::log_directory(),
             log_retention_days: Self::log_retention_days(),
+            trusted_proxies: Self::trusted_proxies(),
         }
+    }
+
+    fn trusted_proxies() -> Vec<IpAddr> {
+        env::var("TRUSTED_PROXIES")
+            .unwrap_or_else(|_| "127.0.0.1,::1".into())
+            .split(',')
+            .filter_map(|s| s.trim().parse::<IpAddr>().ok())
+            .collect()
     }
 
     fn app_https() -> bool {

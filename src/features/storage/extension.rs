@@ -1,36 +1,39 @@
 use crate::features::storage::error::StorageError;
-use mime_guess::mime;
 use std::collections::HashSet;
-
-fn infer_mime_from_bytes(content: &[u8]) -> mime::Mime {
-    if content.starts_with(b"%PDF") {
-        return "application/pdf".parse().unwrap();
-    }
-    if content.len() >= 4 && &content[0..4] == b"\x89PNG" {
-        return "image/png".parse().unwrap();
-    }
-    if content.len() >= 3 && &content[0..3] == b"\xFF\xD8\xFF" {
-        return "image/jpeg".parse().unwrap();
-    }
-    if content.len() >= 6 && (content.starts_with(b"GIF87a") || content.starts_with(b"GIF89a")) {
-        return "image/gif".parse().unwrap();
-    }
-    if content.len() >= 4 && &content[0..4] == b"RIFF" {
-        return "image/webp".parse().unwrap();
-    }
-    if content.starts_with(b"PK\x03\x04") {
-        return "application/zip".parse().unwrap();
-    }
-    "application/octet-stream".parse().unwrap()
-}
 
 const MAX_EXTENSION_LEN: usize = 10;
 
 static DENYLIST: &[&str] = &[
     "exe", "bat", "cmd", "com", "msi", "scr", "ps1", "vbs", "js", "jar", "sh", "bash", "php",
     "asp", "aspx", "jsp", "cgi", "dll", "sys", "hta", "reg", "inf", "lnk", "dmg", "app", "deb",
-    "rpm", "apk", "html", "htm", "svg", "wasm",
+    "rpm", "html", "htm", "svg", "wasm",
 ];
+
+fn is_zip_container(content: &[u8]) -> bool {
+    content.starts_with(b"PK\x03\x04") || content.starts_with(b"PK\x05\x06")
+}
+
+fn is_pe_executable(content: &[u8]) -> bool {
+    content.starts_with(b"MZ")
+}
+
+fn is_elf_executable(content: &[u8]) -> bool {
+    content.starts_with(b"\x7FELF")
+}
+
+/// Active web/script content smuggled under a benign extension.
+fn looks_like_web_script(content: &[u8]) -> bool {
+    let sample_len = content.len().min(512);
+    if sample_len == 0 {
+        return false;
+    }
+    let sample = String::from_utf8_lossy(&content[..sample_len]).to_ascii_lowercase();
+    sample.contains("<!doctype html")
+        || sample.contains("<html")
+        || sample.starts_with("<?php")
+        || sample.contains("<script")
+        || sample.contains("javascript:")
+}
 
 pub fn parse_allowed_extensions(env: &str) -> HashSet<String> {
     env.split(',')
@@ -67,7 +70,7 @@ pub fn validate_upload(
     }
 
     if let Some(bytes) = content {
-        validate_mime_consistency(&ext, bytes)?;
+        validate_content_safety(&ext, bytes)?;
     }
 
     Ok(ext)
@@ -119,46 +122,42 @@ fn normalize_extension(ext: &str) -> Result<String, StorageError> {
     Ok(ext)
 }
 
-fn validate_mime_consistency(ext: &str, content: &[u8]) -> Result<(), StorageError> {
-    let guessed = infer_mime_from_bytes(content);
-    let expected = mime_guess::from_ext(ext).first_or_octet_stream();
-
-    if guessed == expected {
-        return Ok(());
+/// Whitelist is enforced by extension; content checks only block obvious abuse.
+fn validate_content_safety(ext: &str, content: &[u8]) -> Result<(), StorageError> {
+    if content.is_empty() {
+        return Err(StorageError::InvalidExtension(
+            "فایل خالی مجاز نیست.".to_string(),
+        ));
     }
 
-    // Allow generic octet-stream when extension is known archive/office
-    if guessed.type_() == "application"
-        && (guessed.subtype() == "octet-stream" || guessed.subtype() == "zip")
-    {
-        return Ok(());
-    }
-
-    // Reject obvious executable MIME regardless of extension
-    let subtype = guessed.subtype().as_str();
-    if guessed.type_() == "application"
-        && (subtype.contains("executable")
-            || subtype == "x-msdownload"
-            || subtype == "x-dosexec")
-    {
+    if ext != "apk" && (is_pe_executable(content) || is_elf_executable(content)) {
         return Err(StorageError::InvalidExtension(
             "نوع فایل مجاز نیست.".to_string(),
         ));
     }
 
-    // Loose match: same top-level type
-    if guessed.type_() == expected.type_() {
-        return Ok(());
+    if ext == "apk" && !is_zip_container(content) {
+        return Err(StorageError::InvalidExtension(
+            "فایل APK نامعتبر است.".to_string(),
+        ));
     }
 
-    Err(StorageError::InvalidExtension(
-        "نوع فایل با پسوند آن مطابقت ندارد.".to_string(),
-    ))
+    if looks_like_web_script(content) {
+        return Err(StorageError::InvalidExtension(
+            "نوع فایل مجاز نیست.".to_string(),
+        ));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn allowed_with(exts: &[&str]) -> HashSet<String> {
+        exts.iter().map(|e| e.to_string()).collect()
+    }
 
     #[test]
     fn rejects_denylisted_even_if_in_allowed() {
@@ -168,12 +167,51 @@ mod tests {
     }
 
     #[test]
-    fn accepts_whitelisted_pdf() {
-        let mut allowed = HashSet::new();
-        allowed.insert("pdf".into());
-        assert_eq!(
-            validate_upload("doc.pdf", &allowed, None).unwrap(),
-            "pdf"
-        );
+    fn accepts_whitelisted_without_content_check() {
+        let allowed = allowed_with(&["png", "pdf", "mp4"]);
+        assert_eq!(validate_upload("a.png", &allowed, None).unwrap(), "png");
+    }
+
+    #[test]
+    fn accepts_png_without_standard_magic() {
+        let allowed = allowed_with(&["png"]);
+        let content = b"not a real png header but also not malware";
+        assert!(validate_upload("photo.png", &allowed, Some(content)).is_ok());
+    }
+
+    #[test]
+    fn accepts_valid_png_header() {
+        let allowed = allowed_with(&["png"]);
+        let content = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00];
+        assert!(validate_upload("img.png", &allowed, Some(&content)).is_ok());
+    }
+
+    #[test]
+    fn rejects_exe_disguised_as_png() {
+        let allowed = allowed_with(&["png"]);
+        let content = b"MZ\x90\x00fake exe";
+        assert!(validate_upload("photo.png", &allowed, Some(content)).is_err());
+    }
+
+    #[test]
+    fn rejects_html_disguised_as_pdf() {
+        let allowed = allowed_with(&["pdf"]);
+        let content = b"<!DOCTYPE html><html><script>alert(1)</script>";
+        assert!(validate_upload("doc.pdf", &allowed, Some(content)).is_err());
+    }
+
+    #[test]
+    fn accepts_apk_as_zip() {
+        let allowed = allowed_with(&["apk"]);
+        let mut content = vec![0x50, 0x4B, 0x03, 0x04];
+        content.extend_from_slice(b"android");
+        assert!(validate_upload("app.apk", &allowed, Some(&content)).is_ok());
+    }
+
+    #[test]
+    fn rejects_apk_without_zip_magic() {
+        let allowed = allowed_with(&["apk"]);
+        let content = b"not an apk";
+        assert!(validate_upload("app.apk", &allowed, Some(content)).is_err());
     }
 }

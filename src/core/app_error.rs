@@ -10,9 +10,10 @@ pub async fn handle_tower_error(err: BoxError) -> Response {
     if err.is::<tower::timeout::error::Elapsed>() {
         return json_error(StatusCode::REQUEST_TIMEOUT, "Request timed out");
     }
+    tracing::error!(target: "system", "Tower middleware error: {err}");
     json_error(
         StatusCode::INTERNAL_SERVER_ERROR,
-        format!("Internal error: {err}"),
+        "خطای داخلی سرور. لطفاً بعداً تلاش کنید.",
     )
 }
 

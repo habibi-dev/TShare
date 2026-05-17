@@ -43,8 +43,15 @@ impl LoggingGuard {
         let request_layer = Self::build_layer(targets::REQUEST, &request_dir, &mut guards)?;
         let system_layer = Self::build_layer(targets::SYSTEM, &system_dir, &mut guards)?;
 
+        // Mirror system logs to stderr so systemd/journalctl captures startup failures.
+        let stderr_layer = fmt::layer()
+            .with_writer(std::io::stderr)
+            .with_ansi(false)
+            .with_target(true)
+            .with_filter(filter::filter_fn(|metadata| metadata.target() == targets::SYSTEM));
+
         let layers: Vec<Box<dyn Layer<Registry> + Send + Sync + 'static>> =
-            vec![request_layer, system_layer];
+            vec![request_layer, system_layer, stderr_layer.boxed()];
 
         let subscriber = Registry::default().with(layers);
 

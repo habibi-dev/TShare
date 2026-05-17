@@ -3,6 +3,7 @@ use crate::features::share::validation::share_form::{Expiry, MaxViews, ShareForm
 use crate::features::storage::service::UploadedFile;
 use crate::utility::state::app_state;
 use axum::body::Bytes;
+use axum::extract::multipart::Field;
 use axum::extract::Multipart;
 use axum::http::StatusCode;
 use axum::response::Response;
@@ -11,6 +12,11 @@ pub struct CreateShareInput {
     pub form: ShareForm,
     pub file: Option<UploadedFile>,
 }
+
+const MAX_NOTE_LEN: usize = 10_000;
+const MAX_PASSWORD_LEN: usize = 24;
+const MAX_IP_FIELD_LEN: usize = 45;
+const MAX_TEXT_FIELD_LEN: usize = 64;
 
 fn parse_bool(value: Option<&str>) -> Option<bool> {
     value.map(|v| {
@@ -43,9 +49,57 @@ fn parse_max_views(value: Option<&str>) -> Option<MaxViews> {
     }
 }
 
+async fn read_field_bytes_limited(
+    mut field: Field<'_>,
+    max_bytes: usize,
+) -> Result<Vec<u8>, Response> {
+    let mut data = Vec::new();
+    while let Some(chunk) = field.chunk().await.map_err(|_| bad_request())? {
+        if data.len() + chunk.len() > max_bytes {
+            return Err(json_error(
+                StatusCode::BAD_REQUEST,
+                "مقدار فیلد بیش از حد مجاز است.".to_string(),
+            ));
+        }
+        data.extend_from_slice(&chunk);
+    }
+    Ok(data)
+}
+
+async fn read_field_text_limited(field: Field<'_>, max_bytes: usize) -> Result<String, Response> {
+    let data = read_field_bytes_limited(field, max_bytes).await?;
+    String::from_utf8(data).map_err(|_| bad_request())
+}
+
+async fn read_file_field_limited(
+    mut field: Field<'_>,
+    max_bytes: u64,
+) -> Result<Vec<u8>, Response> {
+    let max = max_bytes as usize;
+    let mut data = Vec::new();
+    while let Some(chunk) = field.chunk().await.map_err(|_| bad_request())? {
+        if data.len() + chunk.len() > max {
+            return Err(json_error(
+                StatusCode::PAYLOAD_TOO_LARGE,
+                "حجم فایل بیش از حد مجاز است.".to_string(),
+            ));
+        }
+        data.extend_from_slice(&chunk);
+    }
+    if data.is_empty() {
+        return Err(json_error(
+            StatusCode::BAD_REQUEST,
+            "فایل خالی مجاز نیست.".to_string(),
+        ));
+    }
+    Ok(data)
+}
+
 pub async fn parse_create_multipart(
     mut multipart: Multipart,
 ) -> Result<CreateShareInput, Response> {
+    let max_file_bytes = app_state().file_upload.max_size_bytes();
+
     let mut note: Option<String> = None;
     let mut expiry: Option<Expiry> = None;
     let mut max_views: Option<MaxViews> = None;
@@ -60,40 +114,40 @@ pub async fn parse_create_multipart(
         let name = field.name().unwrap_or("").to_string();
         match name.as_str() {
             "note" => {
-                let text = field.text().await.map_err(|_| bad_request())?;
+                let text = read_field_text_limited(field, MAX_NOTE_LEN).await?;
                 let trimmed = text.trim().to_string();
                 if !trimmed.is_empty() {
                     note = Some(trimmed);
                 }
             }
             "expiry" => {
-                let text = field.text().await.map_err(|_| bad_request())?;
+                let text = read_field_text_limited(field, MAX_TEXT_FIELD_LEN).await?;
                 expiry = parse_expiry(Some(&text));
             }
             "max_views" => {
-                let text = field.text().await.map_err(|_| bad_request())?;
+                let text = read_field_text_limited(field, MAX_TEXT_FIELD_LEN).await?;
                 max_views = parse_max_views(Some(&text));
             }
             "one_time_use" => {
-                let text = field.text().await.map_err(|_| bad_request())?;
+                let text = read_field_text_limited(field, MAX_TEXT_FIELD_LEN).await?;
                 one_time_use = parse_bool(Some(&text));
             }
             "restrict_ip" => {
-                let text = field.text().await.map_err(|_| bad_request())?;
+                let text = read_field_text_limited(field, MAX_TEXT_FIELD_LEN).await?;
                 restrict_ip = parse_bool(Some(&text));
             }
             "require_password" => {
-                let text = field.text().await.map_err(|_| bad_request())?;
+                let text = read_field_text_limited(field, MAX_TEXT_FIELD_LEN).await?;
                 require_password = parse_bool(Some(&text));
             }
             "password" => {
-                let text = field.text().await.map_err(|_| bad_request())?;
+                let text = read_field_text_limited(field, MAX_PASSWORD_LEN).await?;
                 if !text.trim().is_empty() {
                     password = Some(text);
                 }
             }
             "ip" => {
-                let text = field.text().await.map_err(|_| bad_request())?;
+                let text = read_field_text_limited(field, MAX_IP_FIELD_LEN).await?;
                 if !text.trim().is_empty() {
                     ip = Some(text);
                 }
@@ -103,17 +157,11 @@ pub async fn parse_create_multipart(
                     .file_name()
                     .map(|s| s.to_string())
                     .unwrap_or_else(|| "upload.bin".to_string());
-                let data = field
-                    .bytes()
-                    .await
-                    .map_err(|_| bad_request())?
-                    .to_vec();
-                if !data.is_empty() {
-                    file = Some(UploadedFile {
-                        original_name: filename,
-                        data: Bytes::from(data),
-                    });
-                }
+                let data = read_file_field_limited(field, max_file_bytes).await?;
+                file = Some(UploadedFile {
+                    original_name: filename,
+                    data: Bytes::from(data),
+                });
             }
             _ => {}
         }

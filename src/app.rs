@@ -21,11 +21,19 @@ pub async fn app() -> anyhow::Result<()> {
     );
     info!(target: targets::SYSTEM, "Configuration loaded and environment prepared");
 
+    if config.hmac.len() < 32 || config.hmac.contains("{random-string}") {
+        anyhow::bail!(
+            "HMAC_KEY must be set to a random string of at least 32 characters (see .env.example)"
+        );
+    }
+
     // Setup database connection
     let db = Config::setup_database().await?;
     info!(target: targets::SYSTEM, "Database connection established");
 
-    let redis = Config::setup_redis().await;
+    let redis = Config::setup_redis()
+        .await
+        .context("Redis connection failed — is redis-server running?")?;
     info!(target: targets::SYSTEM, "Redis connection established!");
 
     let file_upload = FileUploadConfig::from_env();

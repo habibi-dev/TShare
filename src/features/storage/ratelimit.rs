@@ -7,6 +7,7 @@ const UPLOAD_COUNT_PREFIX: &str = "rl:upload:count:";
 const UPLOAD_BYTES_PREFIX: &str = "rl:upload:bytes:";
 const DOWNLOAD_COUNT_PREFIX: &str = "rl:download:count:";
 const DOWNLOAD_SHARE_PREFIX: &str = "rl:download:share:";
+const SHOW_COUNT_PREFIX: &str = "rl:show:count:";
 
 #[derive(Debug, Clone, Copy)]
 pub struct RateLimitExceeded {
@@ -120,6 +121,32 @@ impl FileRateLimiter {
                 }
                 return Err(RateLimitExceeded {
                     retry_after_secs: self.config.download_share_window_secs,
+                });
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn check_show(&self, ip: Option<IpAddr>) -> Result<(), RateLimitExceeded> {
+        if !self.config.enabled {
+            return Ok(());
+        }
+
+        let ip_key = ip_key(ip);
+
+        if self.config.show_max_per_window > 0 {
+            let key = format!("{SHOW_COUNT_PREFIX}{ip_key}");
+            if !incr_within_limit(
+                &key,
+                1,
+                self.config.show_max_per_window,
+                self.config.show_window_secs,
+            )
+            .await
+            {
+                return Err(RateLimitExceeded {
+                    retry_after_secs: self.config.show_window_secs,
                 });
             }
         }

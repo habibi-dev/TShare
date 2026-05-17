@@ -1,4 +1,4 @@
-use crate::features::share::service::share_update::ShareUpdate;
+use crate::features::share::service::share_atomic::update_share_atomic;
 use crate::features::share::utility::generate_unique_key::key_prefix;
 use crate::features::share::validation::share_form::ShareForm;
 use crate::features::share::validation::share_show::ShowRequest;
@@ -45,33 +45,60 @@ impl ShareRetrieve {
         Ok(share_data)
     }
 
-    /// Marks a one-time file share as consumed after a successful download.
-    pub async fn consume_download(request: &ShowRequest) -> Result<(), ShareError> {
-        let mut share_data = Self::get_data(&request.key).await?;
-        Self::validate_access(&share_data, request)?;
-        share_data.downloaded = Some(true);
-        Self::update_data(&request.key, &share_data).await
+    /// Atomically validates access and marks a one-time file share as downloaded.
+    pub async fn consume_download(request: &ShowRequest) -> Result<ShareForm, ShareError> {
+        let key = request.key.clone();
+        let password = request.password.clone();
+        let ip = request.ip.clone();
+
+        update_share_atomic(&key, |share| {
+            let req = ShowRequest {
+                key: key.clone(),
+                password: password.clone(),
+                ip: ip.clone(),
+            };
+            Self::validate_access(share, &req)?;
+            Self::check_download_limits(share)?;
+            share.downloaded = Some(true);
+            Ok(())
+        })
+        .await
+    }
+
+    pub async fn access_file_download(request: &ShowRequest) -> Result<ShareForm, ShareError> {
+        let peek = Self::get_data(&request.key).await?;
+        if peek.file_stored_name.is_none() {
+            return Err(ShareError::new(
+                StatusCode::NOT_FOUND,
+                "فایلی برای این اشتراک وجود ندارد.".to_string(),
+            ));
+        }
+        if peek.one_time_use.unwrap_or(false) {
+            Self::consume_download(request).await
+        } else {
+            Self::authorize_download(request).await
+        }
     }
 
     pub async fn execute(request: ShowRequest) -> Result<ShareForm, ShareError> {
-        // Retrieve data from Redis
-        let mut share_data = Self::get_data(&request.key).await?;
+        let key = request.key.clone();
+        let password = request.password.clone();
+        let ip = request.ip.clone();
 
-        // Perform validations
-        Self::validate_access(&share_data, &request)?;
+        let mut share_data = update_share_atomic(&key, |share| {
+            let req = ShowRequest {
+                key: key.clone(),
+                password: password.clone(),
+                ip: ip.clone(),
+            };
+            Self::validate_access(share, &req)?;
+            Self::check_show_limits(share)?;
+            share.viewed = Some(share.viewed.unwrap_or(0) + 1);
+            Ok(())
+        })
+        .await?;
 
-        // Check view limits
-        Self::check_show_limits(&share_data)?;
-
-        // Increment view counter
-        share_data.viewed = Some(share_data.viewed.unwrap_or(0) + 1);
-
-        // Update data in Redis
-        Self::update_data(&request.key, &share_data).await?;
-
-        // Decrypt note before returning
-        Self::decrypt_note(&mut share_data, &request.key)?;
-
+        Self::decrypt_note(&mut share_data, &key)?;
         Ok(share_data)
     }
 
@@ -232,52 +259,6 @@ impl ShareRetrieve {
             error!(target: "system", "One-time file share already downloaded");
             return Err(Self::one_time_consumed_error());
         }
-
-        Ok(())
-    }
-
-    async fn update_data(key: &str, share_data: &ShareForm) -> Result<(), ShareError> {
-        let state = app_state();
-        let mut redis = state.redis.as_ref().clone();
-        let redis_key = key_prefix(&key.to_string());
-
-        // Get current TTL
-        let ttl = ShareUpdate::get_current_ttl_redis(&mut redis, &redis_key)
-            .await
-            .map_err(|_| {
-                ShareError::new(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "خطا در دریافت زمان انقضا".to_string(),
-                )
-            })?;
-
-        if ttl <= 0 {
-            error!(target: "system", "Share expired during processing");
-            return Err(ShareError::new(
-                StatusCode::GONE,
-                "اشتراک گذاری منقضی شده است.".to_string(),
-            ));
-        }
-
-        // Serialize and update
-        let json_string = serde_json::to_string(&share_data).map_err(|e| {
-            error!(target: "system", "JSON serialization failed: {}", e);
-            ShareError::new(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "خطا در ذخیره‌سازی اطلاعات".to_string(),
-            )
-        })?;
-
-        redis
-            .set_ex::<_, _, ()>(&redis_key, &json_string, ttl as u64)
-            .await
-            .map_err(|e| {
-                error!(target: "system", "Redis update failed: {}", e);
-                ShareError::new(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "خطا در به‌روزرسانی اطلاعات".to_string(),
-                )
-            })?;
 
         Ok(())
     }

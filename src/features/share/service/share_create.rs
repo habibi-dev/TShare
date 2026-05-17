@@ -2,6 +2,7 @@ use crate::core::response::{json_error, json_success};
 use crate::features::share::service::platform_stats::record_share_created;
 use crate::features::share::utility::generate_unique_key::{generate_unique_key, key_prefix};
 use crate::features::share::validation::share_form::ShareForm;
+use crate::features::storage::config::{FileDownloadMode, FileUploadConfig};
 use crate::features::storage::error::StorageError;
 use crate::features::storage::ratelimit::{FileRateLimiter, RateLimitExceeded};
 use crate::features::storage::service::{StorageService, UploadedFile};
@@ -175,6 +176,21 @@ impl ShareCreate {
                 StatusCode::BAD_REQUEST,
                 "آپلود فایل غیرفعال است.".to_string(),
             )));
+        }
+
+        if has_file_upload {
+            let needs_proxy = FileUploadConfig::file_requires_proxy_download(
+                form.require_password.unwrap_or(false),
+                form.restrict_ip.unwrap_or(false),
+                form.one_time_use.unwrap_or(false),
+            );
+            if needs_proxy && app_state().file_upload.download_mode == FileDownloadMode::Direct {
+                return Err(Box::from(json_error(
+                    StatusCode::BAD_REQUEST,
+                    "برای فایل با پسورد، محدودیت IP یا یک‌بارمصرف، FILE_DOWNLOAD_MODE باید proxy باشد."
+                        .to_string(),
+                )));
+            }
         }
 
         Ok(())

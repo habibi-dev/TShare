@@ -3,6 +3,7 @@ use crate::features::share::service::share_retrieve::ShareRetrieve;
 use crate::features::share::service::share_update::ShareUpdate;
 use crate::features::share::utility::generate_unique_key::key_prefix;
 use crate::features::share::validation::share_delete::DeleteRequest;
+use crate::features::storage::service::StorageService;
 use crate::utility::state::app_state;
 use axum::http::StatusCode;
 use axum::response::Response;
@@ -31,6 +32,12 @@ impl ShareDelete {
         // Verify token
         if let Err(response) = ShareUpdate::verify_token(&request.token, &share_data) {
             return response;
+        }
+
+        if let Some(ref stored) = share_data.file_stored_name {
+            if let Ok(storage) = StorageService::from_state() {
+                let _ = storage.delete_stored(stored).await;
+            }
         }
 
         // Delete from Redis

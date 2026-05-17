@@ -12,6 +12,19 @@ pub struct ShareForm {
     pub password: Option<String>,
     pub ip: Option<String>,
     pub token: Option<String>,
+    pub file_stored_name: Option<String>,
+    pub file_original_name: Option<String>,
+    pub file_size: Option<u64>,
+}
+
+impl ShareForm {
+    pub fn has_content(&self) -> bool {
+        self.note
+            .as_ref()
+            .map(|n| !n.trim().is_empty())
+            .unwrap_or(false)
+            || self.file_stored_name.is_some()
+    }
 }
 
 #[derive(Debug, Deserialize, Clone, Serialize)]

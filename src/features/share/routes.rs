@@ -22,6 +22,7 @@ pub fn share_route() -> (&'static str, Router) {
     (
         "/",
         Router::new()
+            .route("/c/{code}/file", get(ShareController::download_file))
             .route("/c/{code}", get(ShareController::show))
             .with_state(state),
     )

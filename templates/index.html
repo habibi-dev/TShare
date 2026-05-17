@@ -23,6 +23,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <script defer="defer" src="{{url}}js/app.js?ver={{version}}"></script>
+    <script defer="defer" src="{{url}}js/file-upload.js?ver={{version}}"></script>
 </head>
 <body>
 <div class="background-animation">
@@ -68,9 +69,34 @@
         </div>
         <div class="input-wrapper"><label for="note"><textarea
                 placeholder="تهران، خیابان ولیعصر، نرسیده به میدان ونک، پلاک ۱۲۳ - کد پستی: 123456789" name="note"
-                id="note" cols="30" rows="5" maxlength="10000" required></textarea></label>
+                id="note" cols="30" rows="5" maxlength="10000"{% if note_required %} required{% endif %}></textarea></label>
             <div class="input-wrapper-counter"><span>10000</span><span>/</span><span class="used">0</span></div>
         </div>
+        {% if file_upload_enabled %}
+        <div class="file-wrapper" id="fileWrapper">
+            <span class="file-wrapper-title">پیوست فایل (اختیاری)</span>
+            <div class="file-upload-zone" id="fileUploadZone">
+                <label for="file" class="file-upload-card" id="fileUploadCard">
+                    <input type="file" name="file" id="file" class="file-input-hidden" accept="{{ file_accept_attr }}"
+                           data-max-mb="{{ file_max_size_mb }}"
+                           data-allowed-extensions="{{ file_allowed_extensions_display }}">
+                    <span class="file-upload-icon" id="fileUploadIcon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 16V4m0 0L8 8m4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                    <span class="file-upload-prompt" id="fileUploadPrompt">برای انتخاب فایل اینجا کلیک کنید</span>
+                    <span class="file-selected-row" id="fileSelectedRow" hidden>
+                        <span class="file-selected-name" id="fileSelectedName" dir="ltr"></span>
+                        <span class="file-selected-size" id="fileSelectedSize"></span>
+                    </span>
+                </label>
+                <button type="button" class="file-upload-clear" id="fileClearBtn" hidden aria-label="حذف فایل">حذف</button>
+            </div>
+            <span class="file-hint">حداکثر {{ file_max_size_mb }} مگابایت — فرمت‌های مجاز: {{ file_allowed_extensions_display }}</span>
+        </div>
+        {% endif %}
         <div class="security-options">
             <div class="security-option"><input type="checkbox" id="oneTimeUse" name="oneTimeUse"> <label
                     for="oneTimeUse">یک‌بار مصرف</label></div>

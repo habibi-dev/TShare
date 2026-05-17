@@ -38,6 +38,13 @@ impl ShareError {
 }
 
 impl ShareRetrieve {
+    pub async fn authorize_download(request: &ShowRequest) -> Result<ShareForm, ShareError> {
+        let share_data = Self::get_data(&request.key).await?;
+        Self::validate_access(&share_data, request)?;
+        Self::check_limits(&share_data)?;
+        Ok(share_data)
+    }
+
     pub async fn execute(request: ShowRequest) -> Result<ShareForm, ShareError> {
         // Retrieve data from Redis
         let mut share_data = Self::get_data(&request.key).await?;
@@ -245,13 +252,14 @@ impl ShareRetrieve {
     }
 
     fn decrypt_note(share_data: &mut ShareForm, key: &str) -> Result<(), ShareError> {
-        let encrypted = share_data.note.as_ref().ok_or_else(|| {
-            error!(target: "system", "No note found in share data");
-            ShareError::new(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "محتوایی یافت نشد".to_string(),
-            )
-        })?;
+        let Some(encrypted) = share_data.note.as_ref() else {
+            return Ok(());
+        };
+
+        if encrypted.is_empty() {
+            share_data.note = None;
+            return Ok(());
+        }
 
         let decrypted_note = decrypt(encrypted, key).map_err(|e| {
             error!(target: "system", "Decryption failed: {}", e);

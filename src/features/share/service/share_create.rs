@@ -2,6 +2,8 @@ use crate::core::response::{json_error, json_success};
 use crate::features::setting::service::setting_service::SettingService;
 use crate::features::share::utility::generate_unique_key::{generate_unique_key, key_prefix};
 use crate::features::share::validation::share_form::ShareForm;
+use crate::features::storage::error::StorageError;
+use crate::features::storage::service::{StorageService, UploadedFile};
 use crate::utility::encrypt::encrypt;
 use crate::utility::hash::hash;
 use crate::utility::state::app_state;
@@ -21,19 +23,16 @@ const SECONDS_PER_MINUTE: u64 = 60;
 pub struct ShareCreate;
 
 impl ShareCreate {
-    pub async fn execute(form: ShareForm) -> Box<Response> {
-        // Validate form
+    pub async fn execute(form: ShareForm, file: Option<UploadedFile>) -> Box<Response> {
         if let Err(e) = form.validate() {
             error!(target: "system", "Form validation failed: {}", e);
             return Box::from(json_error(StatusCode::BAD_REQUEST, e.to_string()));
         }
 
-        // Validate requirements
-        if let Err(response) = Self::validate_requirements(&form) {
+        if let Err(response) = Self::validate_requirements(&form, file.is_some()) {
             return response;
         }
 
-        // Generate unique key
         let key = match generate_unique_key().await {
             Ok(k) => k,
             Err(e) => {
@@ -45,16 +44,40 @@ impl ShareCreate {
             }
         };
 
-        // Prepare and store data
+        let mut form = form;
+        let uploaded_stored_name = if let Some(upload) = file {
+            match Self::handle_file_upload(&upload).await {
+                Ok((stored, original, size)) => {
+                    form.file_stored_name = Some(stored.clone());
+                    form.file_original_name = Some(original);
+                    form.file_size = Some(size);
+                    Some(stored)
+                }
+                Err(response) => return response,
+            }
+        } else {
+            None
+        };
+
         let data = match Self::prepare_data(&form, &key) {
             Ok(d) => d,
-            Err(response) => return response,
+            Err(response) => {
+                if let Some(stored) = uploaded_stored_name {
+                    Self::rollback_file(&stored).await;
+                }
+                return response;
+            }
         };
 
         let expiry_seconds = Self::calculate_expiry(&form);
+        let expires_at = Utc::now().timestamp() + expiry_seconds as i64;
 
         match Self::store_data(&key, &data, expiry_seconds).await {
             Ok(_) => {
+                if let Some(ref stored) = data.file_stored_name {
+                    StorageService::schedule_cleanup(stored, expires_at).await;
+                }
+
                 Self::used_update_concise()
                     .await
                     .expect("Failed to update usage count");
@@ -62,14 +85,29 @@ impl ShareCreate {
                 Box::from(Self::build_response(&key, &data, expiry_seconds))
             }
             Err(e) => {
+                if let Some(stored) = uploaded_stored_name {
+                    Self::rollback_file(&stored).await;
+                }
                 error!(target: "system", "Redis storage failed: {}", e);
                 Box::from(json_error(StatusCode::INTERNAL_SERVER_ERROR, e))
             }
         }
     }
 
-    fn validate_requirements(form: &ShareForm) -> Result<(), Box<Response>> {
-        // Validate password requirement
+    async fn handle_file_upload(
+        file: &UploadedFile,
+    ) -> Result<(String, String, u64), Box<Response>> {
+        let storage = StorageService::from_state().map_err(storage_to_response)?;
+        storage.upload(file.clone()).await.map_err(storage_to_response)
+    }
+
+    async fn rollback_file(stored_name: &str) {
+        if let Ok(storage) = StorageService::from_state() {
+            let _ = storage.delete_stored(stored_name).await;
+        }
+    }
+
+    fn validate_requirements(form: &ShareForm, has_file_upload: bool) -> Result<(), Box<Response>> {
         if form.require_password.unwrap_or(false) && form.password.is_none() {
             error!(target: "system", "Password required but not provided");
             return Err(Box::from(json_error(
@@ -78,12 +116,31 @@ impl ShareCreate {
             )));
         }
 
-        // Validate IP restriction
         if form.restrict_ip.unwrap_or(false) && form.ip.is_none() {
             error!(target: "system", "IP restriction enabled but IP not provided");
             return Err(Box::from(json_error(
                 StatusCode::BAD_REQUEST,
                 "آدرس آی پی الزامی می باشد.".to_string(),
+            )));
+        }
+
+        let has_note = form
+            .note
+            .as_ref()
+            .map(|n| !n.trim().is_empty())
+            .unwrap_or(false);
+
+        if !has_note && !has_file_upload {
+            return Err(Box::from(json_error(
+                StatusCode::BAD_REQUEST,
+                "متن یا فایل الزامی است.".to_string(),
+            )));
+        }
+
+        if has_file_upload && !app_state().file_upload.is_upload_available() {
+            return Err(Box::from(json_error(
+                StatusCode::BAD_REQUEST,
+                "آپلود فایل غیرفعال است.".to_string(),
             )));
         }
 
@@ -93,26 +150,26 @@ impl ShareCreate {
     fn prepare_data(form: &ShareForm, key: &str) -> Result<ShareForm, Box<Response>> {
         let mut data = form.clone();
 
-        // Hash password if required
         if form.require_password.unwrap_or(false)
             && let Some(ref password) = form.password
         {
             data.password = Some(Self::hash_field(password, "password")?);
         }
 
-        // Hash IP if restricted
         if form.restrict_ip.unwrap_or(false)
             && let Some(ref ip) = form.ip
         {
             data.ip = Some(Self::hash_field(ip, "IP")?);
         }
 
-        // Encrypt note
         if let Some(ref note) = form.note {
-            data.note = Some(Self::encrypt_note(note, key)?);
+            if !note.trim().is_empty() {
+                data.note = Some(Self::encrypt_note(note, key)?);
+            } else {
+                data.note = None;
+            }
         }
 
-        // Generate token
         data.token = Some(Self::hash_field(key, "token")?);
 
         Ok(data)
@@ -194,4 +251,13 @@ impl ShareCreate {
 
         Ok(new_value)
     }
+}
+
+fn storage_to_response(err: StorageError) -> Box<Response> {
+    let status = match &err {
+        StorageError::FileTooLarge | StorageError::InvalidExtension(_) => StatusCode::BAD_REQUEST,
+        StorageError::UploadDisabled => StatusCode::BAD_REQUEST,
+        _ => StatusCode::INTERNAL_SERVER_ERROR,
+    };
+    Box::from(json_error(status, err.to_string()))
 }

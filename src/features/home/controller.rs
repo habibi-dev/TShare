@@ -1,4 +1,5 @@
 use crate::features::share::service::used_count::get_used_count;
+use crate::utility::state::app_state;
 use crate::utility::url::url;
 use askama::Template;
 use axum::http::StatusCode;
@@ -26,6 +27,11 @@ struct IndexTemplate {
     version: String,
     url: String,
     used: String,
+    file_upload_enabled: bool,
+    note_required: bool,
+    file_max_size_mb: u64,
+    file_accept_attr: String,
+    file_allowed_extensions_display: String,
 }
 
 #[derive(Template)]
@@ -53,6 +59,10 @@ pub struct ShowTemplate {
     pub(crate) count: String,
     pub(crate) note: String,
     pub(crate) id: String,
+    pub(crate) has_note: bool,
+    pub(crate) has_file: bool,
+    pub(crate) file_download_url: String,
+    pub(crate) file_display_name: String,
 }
 
 #[derive(Template)]
@@ -70,10 +80,16 @@ impl HomeController {
         let context = BaseContext::new();
         let count = get_used_count().await.unwrap_or(0);
 
+        let file_cfg = &app_state().file_upload;
         IndexTemplate {
             version: context.version,
             url: context.url,
             used: count.to_string(),
+            file_upload_enabled: file_cfg.is_upload_available(),
+            note_required: !file_cfg.is_upload_available(),
+            file_max_size_mb: file_cfg.max_size_mb,
+            file_accept_attr: file_cfg.accept_attr(),
+            file_allowed_extensions_display: file_cfg.extensions_display(),
         }
     }
 

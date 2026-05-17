@@ -1,4 +1,5 @@
 use crate::core::config::Config;
+use crate::features::storage::FileUploadConfig;
 use crate::core::http::start_http;
 use crate::core::logger::{LoggingGuard, targets};
 use crate::core::state::{APP_STATE, State};
@@ -27,8 +28,10 @@ pub async fn app() -> anyhow::Result<()> {
     let redis = Config::setup_redis().await;
     info!(target: targets::SYSTEM, "Redis connection established!");
 
+    let file_upload = FileUploadConfig::from_env();
+
     // Initialize application state
-    State::init(db, config.clone(), redis);
+    State::init(db, config.clone(), redis, file_upload.clone());
     let state = APP_STATE
         .get()
         .cloned()

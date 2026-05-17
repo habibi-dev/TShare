@@ -68,14 +68,35 @@
     </div>
 
     <form class="form" id="shareForm" style="display: flex">
+        {% if has_note %}
         <div class="input-wrapper">
             <label for="note">
                 <textarea name="note" id="note" maxlength="10000" readonly>{{note}}</textarea>
             </label>
             <div class="input-wrapper-counter"><span>10000</span><span>/</span><span class="used">0</span></div>
         </div>
+        {% endif %}
+        {% if file_download_url != "" %}
+        <div class="share-attachment">
+            <a href="{{ file_download_url }}" class="share-file-card" download title="{{ file_display_name }}">
+                                <span class="share-file-card__cta">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                         aria-hidden="true">
+                        <path d="M12 4v10m0 0-4-4m4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                              stroke-linejoin="round"/>
+                        <path d="M5 18h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span>دانلود</span>
+                </span>
+                <span class="share-file-card__name" dir="ltr">{{ file_display_name }}</span>
+
+            </a>
+        </div>
+        {% endif %}
         <div class="footer inline-footer">
+            {% if has_note %}
             <button type="button" class="copy">کپی متن</button>
+            {% endif %}
             <button type="button" class="share">اشتراک گذاری</button>
         </div>
         <div class="delete-box">

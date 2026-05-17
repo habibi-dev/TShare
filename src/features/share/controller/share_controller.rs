@@ -64,24 +64,22 @@ impl ShareController {
                         share_form.file_stored_name.as_ref(),
                         share_form.file_original_name.as_ref(),
                     ) {
-                        let url = if app_state().file_upload.download_mode
-                            == FileDownloadMode::Proxy
-                        {
-                            StorageService::from_state()
-                                .ok()
-                                .and_then(|s| s.build_download_url(stored, &id))
-                                .map(|mut url| {
+                        let url = StorageService::from_state()
+                            .ok()
+                            .and_then(|s| s.build_download_url(stored, &id))
+                            .map(|mut url| {
+                                if app_state().file_upload.download_mode
+                                    == FileDownloadMode::Proxy
+                                {
                                     if let Some(ref pwd) = download_password {
                                         if !pwd.is_empty() {
                                             url = append_password_query(&url, pwd);
                                         }
                                     }
-                                    url
-                                })
-                                .unwrap_or_default()
-                        } else {
-                            String::new()
-                        };
+                                }
+                                url
+                            })
+                            .unwrap_or_default();
                         (
                             true,
                             url,

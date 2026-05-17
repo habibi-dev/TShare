@@ -13,7 +13,7 @@ use crate::utility::state::app_state;
 use axum::body::Body;
 use axum::extract::{Path, Query};
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
-use axum::response::{IntoResponse, Response};
+use axum::response::{IntoResponse, Redirect, Response};
 use axum::{Json, extract::Multipart};
 use mime_guess::from_path;
 
@@ -139,21 +139,27 @@ impl ShareController {
             ShareService::update(request).await
         }
     */
+    fn download_error(template: ErrorTemplate) -> Response {
+        let status = ErrorTemplate::status_from_code(&template.code);
+        template.into_response_with_status(status)
+    }
+
     /// GET /c/:key/file — proxy file download (when FILE_DOWNLOAD_MODE=proxy)
     pub async fn download_file(
         Path(key): Path<String>,
         Query(query): Query<ShowQuery>,
         headers: HeaderMap,
     ) -> Response {
+        let context = crate::features::home::controller::BaseContext::new();
+
         if app_state().file_upload.download_mode != FileDownloadMode::Proxy {
-            return ErrorTemplate {
-                version: crate::features::home::controller::BaseContext::new().version,
-                url: crate::features::home::controller::BaseContext::new().url,
+            return Self::download_error(ErrorTemplate {
+                version: context.version,
+                url: context.url,
                 code: "404".to_string(),
                 title: "یافت نشد".to_string(),
                 message: "دانلود فایل از این مسیر پشتیبانی نمی‌شود.".to_string(),
-            }
-            .into_response();
+            });
         }
 
         let client_ip = get_client_ip(&headers);
@@ -162,18 +168,16 @@ impl ShareController {
             .check_download(client_ip, &key)
             .await
         {
-            let context = crate::features::home::controller::BaseContext::new();
-            return ErrorTemplate {
-                version: context.version,
-                url: context.url,
+            return Self::download_error(ErrorTemplate {
+                version: context.version.clone(),
+                url: context.url.clone(),
                 code: "429".to_string(),
                 title: "درخواست زیاد".to_string(),
                 message: format!(
                     "تعداد دانلودهای شما بیش از حد مجاز است. لطفاً {} ثانیه دیگر تلاش کنید.",
                     limit.retry_after_secs
                 ),
-            }
-            .into_response();
+            });
         }
 
         let request = crate::features::share::validation::share_show::ShowRequest {
@@ -187,28 +191,27 @@ impl ShareController {
         let share = match ShareService::authorize_file_download(request).await {
             Ok(s) => s,
             Err(error) => {
-                let context = crate::features::home::controller::BaseContext::new();
-                return ErrorTemplate {
-                    version: context.version,
-                    url: context.url,
+                if error.code == "401" {
+                    return Redirect::temporary(&format!("/c/{}", key)).into_response();
+                }
+                return Self::download_error(ErrorTemplate {
+                    version: context.version.clone(),
+                    url: context.url.clone(),
                     code: error.code,
                     title: error.title,
                     message: error.message,
-                }
-                .into_response();
+                });
             }
         };
 
         let Some(stored) = share.file_stored_name else {
-            let context = crate::features::home::controller::BaseContext::new();
-            return ErrorTemplate {
+            return Self::download_error(ErrorTemplate {
                 version: context.version,
                 url: context.url,
                 code: "404".to_string(),
                 title: "یافت نشد".to_string(),
                 message: "فایلی برای این اشتراک وجود ندارد.".to_string(),
-            }
-            .into_response();
+            });
         };
 
         let original = share
@@ -219,13 +222,27 @@ impl ShareController {
         let storage = match StorageService::from_state() {
             Ok(s) => s,
             Err(_) => {
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                return Self::download_error(ErrorTemplate {
+                    version: context.version.clone(),
+                    url: context.url.clone(),
+                    code: "500".to_string(),
+                    title: "خطای سرور".to_string(),
+                    message: "خطا در دسترسی به فایل.".to_string(),
+                });
             }
         };
 
         let data = match storage.get_stored(&stored).await {
             Ok(d) => d,
-            Err(_) => return StatusCode::NOT_FOUND.into_response(),
+            Err(_) => {
+                return Self::download_error(ErrorTemplate {
+                    version: context.version,
+                    url: context.url,
+                    code: "404".to_string(),
+                    title: "یافت نشد".to_string(),
+                    message: "فایل یافت نشد.".to_string(),
+                });
+            }
         };
 
         let mime = from_path(original).first_or_octet_stream();

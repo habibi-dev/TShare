@@ -2,7 +2,8 @@ use crate::features::share::service::used_count::get_used_count;
 use crate::utility::state::app_state;
 use crate::utility::url::url;
 use askama::Template;
-use axum::http::StatusCode;
+use axum::body::Body;
+use axum::http::{StatusCode, header};
 use axum::response::{Html, IntoResponse, Response};
 
 // Base context shared across all templates
@@ -49,6 +50,37 @@ pub struct ErrorTemplate {
     pub code: String,
     pub title: String,
     pub message: String,
+}
+
+impl ErrorTemplate {
+    pub fn into_response_with_status(self, status: StatusCode) -> Response {
+        match self.render() {
+            Ok(html) => Response::builder()
+                .status(status)
+                .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
+                .header(header::CONTENT_DISPOSITION, "inline")
+                .body(Body::from(html))
+                .unwrap()
+                .into_response(),
+            Err(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to render template",
+            )
+                .into_response(),
+        }
+    }
+
+    pub fn status_from_code(code: &str) -> StatusCode {
+        match code {
+            "401" => StatusCode::UNAUTHORIZED,
+            "403" => StatusCode::FORBIDDEN,
+            "404" => StatusCode::NOT_FOUND,
+            "410" => StatusCode::GONE,
+            "429" => StatusCode::TOO_MANY_REQUESTS,
+            "500" => StatusCode::INTERNAL_SERVER_ERROR,
+            _ => StatusCode::BAD_REQUEST,
+        }
+    }
 }
 
 #[derive(Template)]

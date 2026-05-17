@@ -17,7 +17,12 @@ pub async fn handle_tower_error(err: BoxError) -> Response {
 }
 
 pub async fn handle_normalize_error(req: Request<Body>, next: Next) -> Response {
+    let is_api = req.uri().path().starts_with("/api");
     let res = next.run(req).await;
+
+    if !is_api {
+        return res;
+    }
 
     // Check if response is an error
     let status = res.status();

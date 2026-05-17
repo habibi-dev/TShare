@@ -3,6 +3,7 @@ use crate::features::setting::service::setting_service::SettingService;
 use crate::features::share::utility::generate_unique_key::{generate_unique_key, key_prefix};
 use crate::features::share::validation::share_form::ShareForm;
 use crate::features::storage::error::StorageError;
+use crate::features::storage::ratelimit::{FileRateLimiter, RateLimitExceeded};
 use crate::features::storage::service::{StorageService, UploadedFile};
 use crate::utility::encrypt::encrypt;
 use crate::utility::hash::hash;
@@ -14,6 +15,7 @@ use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 use chrono::{Duration, Utc};
 use redis::AsyncCommands;
+use std::net::IpAddr;
 use tracing::error;
 use validator::Validate;
 
@@ -23,7 +25,11 @@ const SECONDS_PER_MINUTE: u64 = 60;
 pub struct ShareCreate;
 
 impl ShareCreate {
-    pub async fn execute(form: ShareForm, file: Option<UploadedFile>) -> Box<Response> {
+    pub async fn execute(
+        form: ShareForm,
+        file: Option<UploadedFile>,
+        client_ip: Option<IpAddr>,
+    ) -> Box<Response> {
         if let Err(e) = form.validate() {
             error!(target: "system", "Form validation failed: {}", e);
             return Box::from(json_error(StatusCode::BAD_REQUEST, e.to_string()));
@@ -46,6 +52,12 @@ impl ShareCreate {
 
         let mut form = form;
         let uploaded_stored_name = if let Some(upload) = file {
+            if let Err(response) = Self::check_upload_rate_limit(client_ip, upload.data.len() as u64)
+                .await
+            {
+                return response;
+            }
+
             match Self::handle_file_upload(&upload).await {
                 Ok((stored, original, size)) => {
                     form.file_stored_name = Some(stored.clone());
@@ -92,6 +104,21 @@ impl ShareCreate {
                 Box::from(json_error(StatusCode::INTERNAL_SERVER_ERROR, e))
             }
         }
+    }
+
+    async fn check_upload_rate_limit(
+        client_ip: Option<IpAddr>,
+        file_size: u64,
+    ) -> Result<(), Box<Response>> {
+        let limiter = FileRateLimiter::from_state();
+        if !limiter.is_enabled() {
+            return Ok(());
+        }
+
+        limiter
+            .check_upload(client_ip, file_size)
+            .await
+            .map_err(rate_limit_to_response)
     }
 
     async fn handle_file_upload(
@@ -253,10 +280,21 @@ impl ShareCreate {
     }
 }
 
+fn rate_limit_to_response(err: RateLimitExceeded) -> Box<Response> {
+    Box::from(json_error(
+        StatusCode::TOO_MANY_REQUESTS,
+        format!(
+            "تعداد درخواست‌های آپلود شما بیش از حد مجاز است. لطفاً {} ثانیه دیگر تلاش کنید.",
+            err.retry_after_secs
+        ),
+    ))
+}
+
 fn storage_to_response(err: StorageError) -> Box<Response> {
     let status = match &err {
         StorageError::FileTooLarge | StorageError::InvalidExtension(_) => StatusCode::BAD_REQUEST,
         StorageError::UploadDisabled => StatusCode::BAD_REQUEST,
+        StorageError::RateLimited { .. } => StatusCode::TOO_MANY_REQUESTS,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     };
     Box::from(json_error(status, err.to_string()))

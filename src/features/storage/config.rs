@@ -27,6 +27,81 @@ pub struct StorageBackendSettings {
 }
 
 #[derive(Debug, Clone)]
+pub struct FileRateLimitConfig {
+    pub enabled: bool,
+    pub upload_max_per_window: u64,
+    pub upload_window_secs: u64,
+    pub upload_max_bytes_per_window: u64,
+    pub upload_bytes_window_secs: u64,
+    pub download_max_per_window: u64,
+    pub download_window_secs: u64,
+    pub download_max_per_share_per_window: u64,
+    pub download_share_window_secs: u64,
+}
+
+impl FileRateLimitConfig {
+    fn from_env() -> Self {
+        let enabled = env::var("FILE_RATE_LIMIT_ENABLED")
+            .unwrap_or_else(|_| "true".into())
+            .parse()
+            .unwrap_or(true);
+
+        let upload_max_per_window = env::var("FILE_UPLOAD_MAX_PER_WINDOW")
+            .unwrap_or_else(|_| "20".into())
+            .parse()
+            .unwrap_or(20);
+
+        let upload_window_secs = env::var("FILE_UPLOAD_WINDOW_SECS")
+            .unwrap_or_else(|_| "3600".into())
+            .parse()
+            .unwrap_or(3600);
+
+        let upload_max_bytes_mb: u64 = env::var("FILE_UPLOAD_MAX_MB_PER_WINDOW")
+            .unwrap_or_else(|_| "100".into())
+            .parse()
+            .unwrap_or(100);
+
+        let upload_bytes_window_secs = env::var("FILE_UPLOAD_BYTES_WINDOW_SECS")
+            .unwrap_or_else(|_| "86400".into())
+            .parse()
+            .unwrap_or(86400);
+
+        let download_max_per_window = env::var("FILE_DOWNLOAD_MAX_PER_WINDOW")
+            .unwrap_or_else(|_| "60".into())
+            .parse()
+            .unwrap_or(60);
+
+        let download_window_secs = env::var("FILE_DOWNLOAD_WINDOW_SECS")
+            .unwrap_or_else(|_| "60".into())
+            .parse()
+            .unwrap_or(60);
+
+        let download_max_per_share_per_window =
+            env::var("FILE_DOWNLOAD_MAX_PER_SHARE_PER_WINDOW")
+                .unwrap_or_else(|_| "30".into())
+                .parse()
+                .unwrap_or(30);
+
+        let download_share_window_secs = env::var("FILE_DOWNLOAD_SHARE_WINDOW_SECS")
+            .unwrap_or_else(|_| "3600".into())
+            .parse()
+            .unwrap_or(3600);
+
+        Self {
+            enabled,
+            upload_max_per_window,
+            upload_window_secs,
+            upload_max_bytes_per_window: upload_max_bytes_mb.saturating_mul(1024 * 1024),
+            upload_bytes_window_secs,
+            download_max_per_window,
+            download_window_secs,
+            download_max_per_share_per_window,
+            download_share_window_secs,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct FileUploadConfig {
     pub upload_enabled: bool,
     pub max_size_mb: u64,
@@ -35,6 +110,7 @@ pub struct FileUploadConfig {
     pub allowed_extensions: HashSet<String>,
     pub storage: StorageBackendSettings,
     pub cleanup_interval_secs: u64,
+    pub rate_limit: FileRateLimitConfig,
 }
 
 impl FileUploadConfig {
@@ -104,6 +180,7 @@ impl FileUploadConfig {
             allowed_extensions,
             storage,
             cleanup_interval_secs,
+            rate_limit: FileRateLimitConfig::from_env(),
         }
     }
 

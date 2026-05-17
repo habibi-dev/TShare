@@ -6,12 +6,17 @@ use crate::features::share::validation::share_form::ShareForm;
 use crate::features::share::validation::share_show::ShowRequest;
 use crate::features::storage::service::UploadedFile;
 use axum::response::Response;
+use std::net::IpAddr;
 
 pub struct ShareService;
 
 impl ShareService {
-    pub async fn create(form: ShareForm, file: Option<UploadedFile>) -> Response {
-        *ShareCreate::execute(form, file).await
+    pub async fn create(
+        form: ShareForm,
+        file: Option<UploadedFile>,
+        client_ip: Option<IpAddr>,
+    ) -> Response {
+        *ShareCreate::execute(form, file, client_ip).await
     }
 
     pub async fn show(request: ShowRequest) -> Result<ShareForm, ShareError> {

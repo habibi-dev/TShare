@@ -7,6 +7,7 @@ use crate::features::share::utility::parse_create_form::parse_create_multipart;
 use crate::features::share::validation::share_delete::DeleteRequest;
 use crate::features::share::validation::share_show::ShowRequest;
 use crate::features::storage::config::FileDownloadMode;
+use crate::features::storage::ratelimit::FileRateLimiter;
 use crate::features::storage::service::StorageService;
 use crate::utility::state::app_state;
 use axum::body::Body;
@@ -21,12 +22,13 @@ pub struct ShareController;
 impl ShareController {
     /// POST /share
     /// Create a new share
-    pub async fn create(multipart: Multipart) -> Response {
+    pub async fn create(headers: HeaderMap, multipart: Multipart) -> Response {
+        let client_ip = get_client_ip(&headers);
         let input = match parse_create_multipart(multipart).await {
             Ok(i) => i,
             Err(r) => return r,
         };
-        ShareService::create(input.form, input.file).await
+        ShareService::create(input.form, input.file, client_ip).await
     }
 
     /// GET /share/:key
@@ -154,10 +156,30 @@ impl ShareController {
             .into_response();
         }
 
+        let client_ip = get_client_ip(&headers);
+
+        if let Err(limit) = FileRateLimiter::from_state()
+            .check_download(client_ip, &key)
+            .await
+        {
+            let context = crate::features::home::controller::BaseContext::new();
+            return ErrorTemplate {
+                version: context.version,
+                url: context.url,
+                code: "429".to_string(),
+                title: "درخواست زیاد".to_string(),
+                message: format!(
+                    "تعداد دانلودهای شما بیش از حد مجاز است. لطفاً {} ثانیه دیگر تلاش کنید.",
+                    limit.retry_after_secs
+                ),
+            }
+            .into_response();
+        }
+
         let request = crate::features::share::validation::share_show::ShowRequest {
             key: key.clone(),
             password: query.password,
-            ip: get_client_ip(&headers)
+            ip: client_ip
                 .map(|ip| ip.to_string())
                 .unwrap_or_else(|| "unknown".to_string()),
         };

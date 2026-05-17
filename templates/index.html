@@ -6,13 +6,13 @@
     <title>TShare.ir | اشتراک امن و موقت متن و فایل</title>
     <link rel="stylesheet" href="{{url}}css/style.css?ver={{version}}">
     <meta name="description"
-          content="ابزار ساده برای اشتراک‌گذاری یادداشت‌ها و متن‌های کوتاه. بدون ثبت‌نام، لینک ایجاد کنید و محتوا را به راحتی منتقل کنید.">
+          content="ابزار ساده برای اشتراک‌گذاری متن، یادداشت و فایل‌های ضروری. بدون ثبت‌نام، لینک ایجاد کنید و محتوا را به راحتی منتقل کنید.">
     <meta property="og:title" content="TShare.ir | اشتراک امن و موقت متن و فایل">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{url}}">
     <meta property="og:image" content="{{url}}img/og-preview.png?ver={{version}}">
     <meta property="og:description"
-          content="ابزار ساده برای اشتراک‌گذاری یادداشت‌ها و متن‌های کوتاه. مناسب برای ارسال آدرس، شماره تماس یا یادداشت‌های روزمره.">
+          content="ابزار ساده برای اشتراک‌گذاری متن و فایل‌های ضروری. مناسب برای ارسال آدرس، شماره تماس، تصویر، سند یا یادداشت‌های روزمره.">
     <meta property="og:locale" content="fa_IR">
     <meta property="og:image:alt" content="TShare.ir | اشتراک امن و موقت متن و فایل">
     <link rel="icon" href="{{url}}favicon.ico?ver={{version}}" sizes="any">
@@ -44,8 +44,8 @@
 </header>
 <div class="content">
     <div class="header"><h2>اشتراک امن و موقت متن و فایل</h2>
-        <p>ابزار ساده برای اشتراک‌گذاری یادداشت‌ها و متن‌های کوتاه.<br/>بدون ثبت‌نام، لینک ایجاد کنید و به اشتراک
-            بگذارید، مثل ارسال آدرس، شماره تماس، یا دستورالعمل‌های کاری.</p></div>
+        <p>ابزار ساده برای اشتراک‌گذاری یادداشت‌ها، متن‌های کوتاه و فایل‌های ضروری.<br/>بدون ثبت‌نام، لینک ایجاد کنید و به اشتراک
+            بگذارید؛ مثل ارسال آدرس، شماره تماس، تصویر، سند یا دستورالعمل‌های کاری.</p></div>
     <div class="home">
         <button type="button" class="submit-btn" id="createLink">اشتراک‌گذاری</button>
         <button type="button" class="show-btn" id="showLonk">مشاهده</button>
@@ -136,7 +136,10 @@
             <button type="button" class="back-btn">بازگشت</button>
         </div>
     </form>
-    <p class="stats">تا این لحظه، <span>{{used}}</span> متن به اشتراک گذاشته شده است.</p></div>
+    <p class="stats">تا این لحظه، <span>{{ stats.text_shares }}</span> متن و <span>{{ stats.file_shares }}</span> فایل به اشتراک گذاشته شده
+        (<span>{{ stats.total_shares }}</span> اشتراک‌گذاری).</p>
+    <p class="stats stats-muted">آپلود <span>{{ stats.uploaded_size }}</span> · دانلود <span>{{ stats.downloaded_size }}</span></p>
+</div>
 <footer>
     <div><a href="https://habibi-dev.blogfa.com/page/support" class="donate-link" target="_blank">با یه قهوه ازم حمایت کن ☕</a>
         <p>Powered by Rust 🦀 - v{{version}}</p></div>

@@ -45,7 +45,7 @@ body {
         color: #4a5568;
         font-size: clamp(.9rem, 2vw, 1rem);
         line-height: 1.8;
-        max-width: 750px;
+        max-width: 785px;
         margin: 0 auto;
         font-weight: 300;
       }
@@ -710,10 +710,28 @@ body {
       font-size: .9rem;
       font-weight: 300;
       color: #656565;
+      text-align: center;
+      line-height: 1.7;
+      margin: 0;
+      max-width: 36rem;
+
+      + .stats {
+        margin-top: .15rem;
+      }
 
       > span {
         font-weight: 800;
         color: #656565;
+      }
+
+      &.stats-muted {
+        font-size: .82rem;
+        color: #8a8a8a;
+
+        > span {
+          font-weight: 600;
+          color: #7a7a7a;
+        }
       }
     }
 

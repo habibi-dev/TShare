@@ -1,5 +1,5 @@
 use crate::core::response::{json_error, json_success};
-use crate::features::setting::service::setting_service::SettingService;
+use crate::features::share::service::platform_stats::record_share_created;
 use crate::features::share::utility::generate_unique_key::{generate_unique_key, key_prefix};
 use crate::features::share::validation::share_form::ShareForm;
 use crate::features::storage::error::StorageError;
@@ -90,9 +90,15 @@ impl ShareCreate {
                     StorageService::schedule_cleanup(stored, expires_at).await;
                 }
 
-                Self::used_update_concise()
+                let has_text = data
+                    .note
+                    .as_ref()
+                    .map(|n| !n.trim().is_empty())
+                    .unwrap_or(false);
+                let file_size = data.file_size.filter(|s| *s > 0);
+                record_share_created(has_text, file_size)
                     .await
-                    .expect("Failed to update usage count");
+                    .expect("Failed to update platform stats");
 
                 Box::from(Self::build_response(&key, &data, expiry_seconds))
             }
@@ -266,18 +272,6 @@ impl ShareCreate {
         json_success(json_data)
     }
 
-    async fn used_update_concise() -> Result<i64, Box<dyn std::error::Error>> {
-        let new_value = SettingService::get_by_key("used")
-            .await?
-            .and_then(|s| s.meta_value)
-            .and_then(|v| v.parse::<i64>().ok())
-            .unwrap_or(0)
-            + 1;
-
-        SettingService::upsert("used".to_string(), Some(new_value.to_string())).await?;
-
-        Ok(new_value)
-    }
 }
 
 fn rate_limit_to_response(err: RateLimitExceeded) -> Box<Response> {

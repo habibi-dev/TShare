@@ -1,4 +1,6 @@
-use crate::features::share::service::used_count::get_used_count;
+use crate::features::share::service::platform_stats::{
+    PlatformStatsDisplay, get_platform_stats_display,
+};
 use crate::utility::state::app_state;
 use crate::utility::url::url;
 use askama::Template;
@@ -27,7 +29,7 @@ impl BaseContext {
 struct IndexTemplate {
     version: String,
     url: String,
-    used: String,
+    stats: PlatformStatsDisplay,
     file_upload_enabled: bool,
     note_required: bool,
     file_max_size_mb: u64,
@@ -110,13 +112,13 @@ pub struct HomeController;
 impl HomeController {
     pub async fn index() -> impl IntoResponse {
         let context = BaseContext::new();
-        let count = get_used_count().await.unwrap_or(0);
+        let stats = get_platform_stats_display().await;
 
         let file_cfg = &app_state().file_upload;
         IndexTemplate {
             version: context.version,
             url: context.url,
-            used: count.to_string(),
+            stats,
             file_upload_enabled: file_cfg.is_upload_available(),
             note_required: !file_cfg.is_upload_available(),
             file_max_size_mb: file_cfg.max_size_mb,

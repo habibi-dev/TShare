@@ -1,3 +1,4 @@
+pub mod platform_stats;
 pub mod share_create;
 pub mod share_delete;
 pub mod share_retrieve;

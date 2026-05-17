@@ -205,7 +205,7 @@ body .content .header p {
   color: #4a5568;
   font-size: clamp(0.9rem, 2vw, 1rem);
   line-height: 1.8;
-  max-width: 750px;
+  max-width: 785px;
   margin: 0 auto;
   font-weight: 300;
 }
@@ -774,10 +774,25 @@ body .content .stats {
   font-size: 0.9rem;
   font-weight: 300;
   color: #656565;
+  text-align: center;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 36rem;
+}
+body .content .stats + .stats {
+  margin-top: 0.15rem;
 }
 body .content .stats > span {
   font-weight: 800;
   color: #656565;
+}
+body .content .stats.stats-muted {
+  font-size: 0.82rem;
+  color: #8a8a8a;
+}
+body .content .stats.stats-muted > span {
+  font-weight: 600;
+  color: #7a7a7a;
 }
 body .content .delete-box {
   display: flex;

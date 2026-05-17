@@ -6,6 +6,7 @@ use crate::features::share::utility::get_client_ip::get_client_ip;
 use crate::features::share::utility::parse_create_form::parse_create_multipart;
 use crate::features::share::validation::share_delete::DeleteRequest;
 use crate::features::share::validation::share_show::ShowRequest;
+use crate::features::share::service::platform_stats::record_file_downloaded;
 use crate::features::storage::config::FileDownloadMode;
 use crate::features::storage::ratelimit::FileRateLimiter;
 use crate::features::storage::service::StorageService;
@@ -272,6 +273,11 @@ impl ShareController {
                     message: error.message,
                 });
             }
+        }
+
+        let downloaded_bytes = share.file_size.unwrap_or(data.len() as u64);
+        if let Err(e) = record_file_downloaded(downloaded_bytes).await {
+            tracing::warn!(target: "system", "Failed to record download stats: {}", e);
         }
 
         let mime = from_path(original).first_or_octet_stream();

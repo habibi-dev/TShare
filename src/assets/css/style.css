@@ -638,6 +638,20 @@ body .content .form .file-wrapper .file-hint {
   line-height: 1.5;
   max-width: 100%;
 }
+body .content .form .file-wrapper.file-drag-active .file-upload-card {
+  border-color: #e50561;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(229, 5, 97, 0.12);
+}
+body.file-page-drag::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  border: 2px dashed #e50561;
+  background: rgba(229, 5, 97, 0.05);
+  z-index: 9999;
+}
 body .content .form .share-attachment {
   width: 100%;
   justify-content: center;

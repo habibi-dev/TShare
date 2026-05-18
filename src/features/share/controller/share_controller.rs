@@ -14,6 +14,10 @@ use crate::utility::content_disposition::attachment_disposition;
 use crate::utility::state::app_state;
 use crate::utility::url::append_password_query;
 use axum::body::Body;
+use axum::Error as AxumBodyError;
+use crate::features::storage::backend::StoredFile;
+use futures_util::StreamExt;
+use tokio_util::io::ReaderStream;
 use axum::extract::ConnectInfo;
 use axum::extract::{Path, Query};
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
@@ -245,8 +249,8 @@ impl ShareController {
             }
         };
 
-        let data = match storage.get_stored(&stored).await {
-            Ok(d) => d,
+        let stored_file = match storage.open_for_download(&stored).await {
+            Ok(f) => f,
             Err(_) => {
                 return Self::download_error(ErrorTemplate {
                     version: context.version,
@@ -258,7 +262,18 @@ impl ShareController {
             }
         };
 
-        let downloaded_bytes = share.file_size.unwrap_or(data.len() as u64);
+        let downloaded_bytes = if let Some(size) = share.file_size {
+            size
+        } else {
+            match &stored_file {
+                StoredFile::Buffered(data) => data.len() as u64,
+                StoredFile::Local(file) => file
+                    .metadata()
+                    .await
+                    .map(|m| m.len())
+                    .unwrap_or(0),
+            }
+        };
         if let Err(e) = record_file_downloaded(downloaded_bytes).await {
             tracing::warn!(target: "system", "Failed to record download stats: {}", e);
         }
@@ -266,7 +281,16 @@ impl ShareController {
         let mime = from_path(original).first_or_octet_stream();
         let disposition = attachment_disposition(&StorageService::display_filename(original));
 
-        Response::builder()
+        let body = match stored_file {
+            StoredFile::Local(file) => {
+                let stream = ReaderStream::new(file)
+                    .map(|chunk| chunk.map_err(AxumBodyError::new));
+                Body::from_stream(stream)
+            }
+            StoredFile::Buffered(data) => Body::from(data),
+        };
+
+        let mut builder = Response::builder()
             .status(StatusCode::OK)
             .header(header::CONTENT_TYPE, mime.as_ref())
             .header(header::X_CONTENT_TYPE_OPTIONS, "nosniff")
@@ -275,10 +299,13 @@ impl ShareController {
                 HeaderValue::from_str(&disposition).unwrap_or_else(|_| {
                     HeaderValue::from_static("attachment")
                 }),
-            )
-            .body(Body::from(data))
-            .unwrap()
-            .into_response()
+            );
+
+        if downloaded_bytes > 0 {
+            builder = builder.header(header::CONTENT_LENGTH, downloaded_bytes.to_string());
+        }
+
+        builder.body(body).unwrap().into_response()
     }
 
     /// DELETE /api/share/:key

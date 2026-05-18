@@ -1,9 +1,12 @@
+use crate::features::storage::backend::r#trait::StoredFile;
 use crate::features::storage::backend::FileStorageBackend;
 use crate::features::storage::config::StorageBackendSettings;
 use crate::features::storage::error::StorageError;
 use async_trait::async_trait;
 use bytes::Bytes;
-use std::io::Cursor;
+use std::fs::File;
+use std::io;
+use std::path::Path;
 use std::sync::Arc;
 use suppaftp::FtpStream;
 
@@ -58,18 +61,24 @@ impl FtpBackend {
 
 #[async_trait]
 impl FileStorageBackend for FtpBackend {
-    async fn put(&self, remote_name: &str, data: Bytes) -> Result<(), StorageError> {
+    async fn put_from_path(
+        &self,
+        remote_name: &str,
+        source: &Path,
+    ) -> Result<(), StorageError> {
         let path = self.remote_path(remote_name);
         let settings = self.settings.clone();
-        let bytes = data.to_vec();
+        let source = source.to_path_buf();
 
         tokio::task::spawn_blocking(move || {
             let backend = FtpBackend::new(settings.as_ref().clone());
             let mut ftp = backend.connect()?;
-            let mut reader = Cursor::new(bytes);
-            ftp.put_file(&path, &mut reader)
+            let mut file = File::open(&source).map_err(|e| StorageError::Io(e.to_string()))?;
+            ftp.put_file(&path, &mut file)
                 .map_err(|e| StorageError::Ftp(e.to_string()))?;
             let _ = ftp.quit();
+            drop(file);
+            std::fs::remove_file(&source).map_err(|e| StorageError::Io(e.to_string()))?;
             Ok::<(), StorageError>(())
         })
         .await
@@ -96,7 +105,7 @@ impl FileStorageBackend for FtpBackend {
         Ok(())
     }
 
-    async fn get(&self, remote_name: &str) -> Result<Bytes, StorageError> {
+    async fn open_for_read(&self, remote_name: &str) -> Result<StoredFile, StorageError> {
         let path = self.remote_path(remote_name);
         let settings = self.settings.clone();
 
@@ -106,7 +115,7 @@ impl FileStorageBackend for FtpBackend {
             let data = ftp
                 .retr(&path, |reader| {
                     let mut writer = Vec::new();
-                    std::io::copy(reader, &mut writer).map_err(|e| {
+                    io::copy(reader, &mut writer).map_err(|e| {
                         suppaftp::FtpError::ConnectionError(std::io::Error::new(
                             std::io::ErrorKind::Other,
                             e.to_string(),
@@ -121,6 +130,6 @@ impl FileStorageBackend for FtpBackend {
         .await
         .map_err(|e| StorageError::Io(e.to_string()))??;
 
-        Ok(Bytes::from(data))
+        Ok(StoredFile::Buffered(Bytes::from(data)))
     }
 }

@@ -1,8 +1,8 @@
+use crate::features::storage::backend::r#trait::StoredFile;
 use crate::features::storage::backend::FileStorageBackend;
 use crate::features::storage::error::StorageError;
 use async_trait::async_trait;
-use bytes::Bytes;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tokio::fs;
 
 #[derive(Clone)]
@@ -29,16 +29,28 @@ impl LocalBackend {
 
 #[async_trait]
 impl FileStorageBackend for LocalBackend {
-    async fn put(&self, remote_name: &str, data: Bytes) -> Result<(), StorageError> {
+    async fn put_from_path(
+        &self,
+        remote_name: &str,
+        source: &Path,
+    ) -> Result<(), StorageError> {
         let path = self.full_path(remote_name)?;
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)
                 .await
                 .map_err(|e| StorageError::Io(e.to_string()))?;
         }
-        fs::write(&path, &data)
-            .await
-            .map_err(|e| StorageError::Io(e.to_string()))
+
+        match fs::rename(source, &path).await {
+            Ok(()) => Ok(()),
+            Err(_) => {
+                fs::copy(source, &path)
+                    .await
+                    .map_err(|e| StorageError::Io(e.to_string()))?;
+                let _ = fs::remove_file(source).await;
+                Ok(())
+            }
+        }
     }
 
     async fn delete(&self, remote_name: &str) -> Result<(), StorageError> {
@@ -50,17 +62,19 @@ impl FileStorageBackend for LocalBackend {
         }
     }
 
-    async fn get(&self, remote_name: &str) -> Result<Bytes, StorageError> {
+    async fn open_for_read(&self, remote_name: &str) -> Result<StoredFile, StorageError> {
         let path = self.full_path(remote_name)?;
-        let data = fs::read(&path)
-            .await
-            .map_err(|e| {
-                if e.kind() == std::io::ErrorKind::NotFound {
-                    StorageError::NotFound
-                } else {
-                    StorageError::Io(e.to_string())
-                }
-            })?;
-        Ok(Bytes::from(data))
+        let file = fs::File::open(&path).await.map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                StorageError::NotFound
+            } else {
+                StorageError::Io(e.to_string())
+            }
+        })?;
+        Ok(StoredFile::Local(file))
+    }
+
+    fn local_root(&self) -> Option<&Path> {
+        Some(&self.root)
     }
 }

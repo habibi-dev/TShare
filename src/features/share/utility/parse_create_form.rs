@@ -2,11 +2,14 @@ use crate::core::response::json_error;
 use crate::features::share::validation::share_form::{Expiry, MaxViews, ShareForm};
 use crate::features::storage::service::UploadedFile;
 use crate::utility::state::app_state;
-use axum::body::Bytes;
 use axum::extract::multipart::Field;
 use axum::extract::Multipart;
 use axum::http::StatusCode;
 use axum::response::Response;
+use std::path::PathBuf;
+use tokio::fs;
+use tokio::io::AsyncWriteExt;
+use uuid::Uuid;
 
 pub struct CreateShareInput {
     pub form: ShareForm,
@@ -71,34 +74,55 @@ async fn read_field_text_limited(field: Field<'_>, max_bytes: usize) -> Result<S
     String::from_utf8(data).map_err(|_| bad_request())
 }
 
-async fn read_file_field_limited(
+async fn stream_file_field_to_temp(
     mut field: Field<'_>,
     max_bytes: u64,
-) -> Result<Vec<u8>, Response> {
-    let max = max_bytes as usize;
-    let mut data = Vec::new();
+    temp_dir: PathBuf,
+) -> Result<(PathBuf, u64), Response> {
+    fs::create_dir_all(&temp_dir)
+        .await
+        .map_err(|_| bad_request())?;
+
+    let temp_path = temp_dir.join(format!("{}.part", Uuid::new_v4()));
+    let mut file = fs::File::create(&temp_path)
+        .await
+        .map_err(|_| bad_request())?;
+
+    let mut total: u64 = 0;
     while let Some(chunk) = field.chunk().await.map_err(|_| bad_request())? {
-        if data.len() + chunk.len() > max {
+        let chunk_len = chunk.len() as u64;
+        if total.saturating_add(chunk_len) > max_bytes {
+            let _ = fs::remove_file(&temp_path).await;
             return Err(json_error(
                 StatusCode::PAYLOAD_TOO_LARGE,
                 "حجم فایل بیش از حد مجاز است.".to_string(),
             ));
         }
-        data.extend_from_slice(&chunk);
+        file.write_all(&chunk)
+            .await
+            .map_err(|_| bad_request())?;
+        total += chunk_len;
     }
-    if data.is_empty() {
+
+    if total == 0 {
+        let _ = fs::remove_file(&temp_path).await;
         return Err(json_error(
             StatusCode::BAD_REQUEST,
             "فایل خالی مجاز نیست.".to_string(),
         ));
     }
-    Ok(data)
+
+    Ok((temp_path, total))
 }
 
 pub async fn parse_create_multipart(
     mut multipart: Multipart,
 ) -> Result<CreateShareInput, Response> {
-    let max_file_bytes = app_state().file_upload.max_size_bytes();
+    let file_upload = app_state().file_upload.clone();
+    let max_file_bytes = file_upload.max_size_bytes();
+    let upload_temp_dir = crate::features::storage::backend::upload_temp_dir(
+        &file_upload.storage.local_root,
+    );
 
     let mut note: Option<String> = None;
     let mut expiry: Option<Expiry> = None;
@@ -157,10 +181,13 @@ pub async fn parse_create_multipart(
                     .file_name()
                     .map(|s| s.to_string())
                     .unwrap_or_else(|| "upload.bin".to_string());
-                let data = read_file_field_limited(field, max_file_bytes).await?;
+                let (temp_path, size) =
+                    stream_file_field_to_temp(field, max_file_bytes, upload_temp_dir.clone())
+                        .await?;
                 file = Some(UploadedFile {
                     original_name: filename,
-                    data: Bytes::from(data),
+                    temp_path,
+                    size,
                 });
             }
             _ => {}

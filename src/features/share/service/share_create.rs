@@ -53,13 +53,13 @@ impl ShareCreate {
 
         let mut form = form;
         let uploaded_stored_name = if let Some(upload) = file {
-            if let Err(response) = Self::check_upload_rate_limit(client_ip, upload.data.len() as u64)
+            if let Err(response) = Self::check_upload_rate_limit(client_ip, upload.size)
                 .await
             {
                 return response;
             }
 
-            match Self::handle_file_upload(&upload).await {
+            match Self::handle_file_upload(upload).await {
                 Ok((stored, original, size)) => {
                     form.file_stored_name = Some(stored.clone());
                     form.file_original_name = Some(original);
@@ -129,10 +129,10 @@ impl ShareCreate {
     }
 
     async fn handle_file_upload(
-        file: &UploadedFile,
+        file: UploadedFile,
     ) -> Result<(String, String, u64), Box<Response>> {
         let storage = StorageService::from_state().map_err(storage_to_response)?;
-        storage.upload(file.clone()).await.map_err(storage_to_response)
+        storage.upload_file(file).await.map_err(storage_to_response)
     }
 
     async fn rollback_file(stored_name: &str) {

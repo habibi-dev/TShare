@@ -1,0 +1,15 @@
+<header dir="ltr" class="app-header">
+    <div class="app-header__inner">
+        <a href="{{url}}" class="brand-lockup">
+            <img src="{{url}}icon.png?ver={{version}}" alt="TShare.ir" class="logo" width="30" height="30">
+            <span class="brand-lockup__text">
+                <h1 class="brand-lockup__name">TShare.ir</h1>
+                <span class="brand-lockup__tagline" lang="en">Fast · Private · Ephemeral</span>
+            </span>
+        </a>
+        <div class="app-header__nav">
+            <a href="{{url}}history" class="app-header__link" data-i18n="nav.links">Your links</a>
+            {% include "partials/header-chrome.html" %}
+        </div>
+    </div>
+</header>

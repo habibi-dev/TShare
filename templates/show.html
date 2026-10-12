@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -26,6 +26,8 @@
     <meta name="theme-color" content="#e50561">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <script src="{{url}}js/i18n.js?ver={{version}}"></script>
+    <script src="{{url}}js/modal.js?ver={{version}}"></script>
     <script defer="defer" src="{{url}}js/app.js?ver={{version}}"></script>
 </head>
 
@@ -36,85 +38,74 @@
     <div class="floating-sphere sphere-2"></div>
     <div class="floating-sphere sphere-3"></div>
 </div>
-<header>
-    <div>
-        <div class="right">
-            <ul>
-                <li>
-                    <a href="{{url}}history">لینک های شما</a>
-                </li>
-            </ul>
-        </div>
-        <div class="left">
-            <a href="{{url}}">
-                <img src="{{url}}icon.png?ver={{version}}" alt="TShare.ir" class="logo">
-                <h1>TShare.ir</h1>
-            </a>
-        </div>
-    </div>
-</header>
-<div class="content">
-    <div class="header">
-        <h2>
-            شناسه شما برای اشتراک گذاری
-        </h2>
-        <p>
-            شناسه زیر را برای اشتراک‌گذاری متن یا فایل خود استفاده کنید. با این شناسه می‌توانید محتوا را مشاهده، کپی یا دانلود کنید.
-        </p>
+{% include "partials/header.html" %}
+<div class="content content--show">
+    <div class="header share-view-hero">
+        <h2 data-i18n="show.title">Your share ID</h2>
+        <p data-i18n="show.subtitle"></p>
 
-        <label>
+        <label class="tshare-copy-anchor">
             <input type="text" class="id-show-for-copy" value="{{id}}" readonly>
         </label>
     </div>
 
-    <form class="form" id="shareForm" style="display: flex">
-        {% if has_note %}
-        <div class="input-wrapper">
-            <label for="note">
-                <textarea name="note" id="note" maxlength="10000" readonly>{{note}}</textarea>
-            </label>
-            <div class="input-wrapper-counter"><span>10000</span><span>/</span><span class="used">0</span></div>
-        </div>
-        {% endif %}
-        {% if file_download_url != "" %}
-        <div class="share-attachment">
-            <a href="{{ file_download_url }}" class="share-file-card" title="{{ file_display_name }}">
-                                <span class="share-file-card__cta">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
-                         aria-hidden="true">
-                        <path d="M12 4v10m0 0-4-4m4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                              stroke-linejoin="round"/>
-                        <path d="M5 18h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                    <span>دانلود</span>
-                </span>
-                <span class="share-file-card__name" dir="ltr">{{ file_display_name }}</span>
-
-            </a>
-        </div>
-        {% endif %}
-        <div class="footer inline-footer">
+    <form class="form form--share-view" id="shareForm" style="display: flex">
+        <div class="share-view-panel">
             {% if has_note %}
-            <button type="button" class="copy">کپی متن</button>
+            <section class="share-view-section share-view-section--note">
+                <div class="input-wrapper share-view-note">
+                    <label for="note">
+                        <textarea name="note" id="note" maxlength="10000" readonly>{{note}}</textarea>
+                    </label>
+                    <div class="input-wrapper-counter" data-max="10000"><span class="counter-max">10000</span><span>/</span><span class="used">0</span></div>
+                </div>
+            </section>
             {% endif %}
-            <button type="button" class="share">اشتراک گذاری</button>
+            {% if file_download_url != "" %}
+            <section class="share-view-section share-view-section--file">
+                <p class="share-view-section-label" data-i18n="show.fileLabel">Attachment</p>
+                <div class="share-attachment">
+                    <a href="{{ file_download_url }}" class="share-file-card share-file-card--rich" title="{{ file_display_name }}">
+                        <span class="share-file-card__icon" aria-hidden="true">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                                <path d="M14 2v6h6M8 13h8M8 17h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <span class="share-file-card__info">
+                            <span class="share-file-card__name" dir="ltr">{{ file_display_name }}</span>
+                            <span class="share-file-card__hint" data-i18n="show.fileHint">Click to download</span>
+                        </span>
+                        <span class="share-file-card__action">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M12 4v10m0 0-4-4m4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M5 18h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            <span data-i18n="show.download">Download</span>
+                        </span>
+                    </a>
+                </div>
+            </section>
+            {% endif %}
+            <section class="share-view-section share-view-section--actions">
+                <div class="footer inline-footer share-view-actions">
+                    {% if has_note %}
+                    <button type="button" class="copy" data-i18n="show.copy">Copy text</button>
+                    {% endif %}
+                    <button type="button" class="share" data-i18n="show.share">Share</button>
+                </div>
+            </section>
         </div>
-        <div class="delete-box">
-            <button type="button" class="delete">حذف این اشتراک گذاری</button>
-            <a href="{{url}}"
-               style="flex: 0;font-size: 1rem;text-decoration: none;display: flex;text-align: center;width: 100%;justify-content: center;color: #8b8b8b;margin-top: 2rem;margin-bottom: 2rem;">
-                بازگشت به خانه
-            </a>
-        </div>
+        <nav class="share-view-toolbar" aria-label="Share options">
+            <button type="button" class="delete share-view-toolbar__item share-view-toolbar__item--danger" data-i18n="show.delete">Delete this share</button>
+            <span class="share-view-toolbar__dot" aria-hidden="true"></span>
+            <a href="{{url}}" class="show-back-link share-view-toolbar__item share-view-toolbar__item--muted" data-i18n="show.backHome">Back to home</a>
+        </nav>
     </form>
-    <p class="stats">تا این لحظه، <span>{{count}}</span> بار مشاهده شده است.</p></div>
+    <p class="stats share-view-stats" data-i18n="show.views" data-i18n-params='{"n":"{{count}}"}'></p>
 </div>
 
-<footer>
-    <div><a href="https://habibi-dev.blogfa.com/page/support" class="donate-link" target="_blank">با یه قهوه ازم حمایت
-        کن ☕</a>
-        <p>Powered by Rust 🦀 - v{{version}}</p></div>
-</footer>
+{% include "partials/footer.html" %}
 
 </body>
 </html>

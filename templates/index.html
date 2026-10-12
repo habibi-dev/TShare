@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-    <title>TShare.ir | اشتراک امن و موقت متن و فایل</title>
+    <title data-i18n="meta.title">TShare.ir | Secure temporary text & file sharing</title>
     <link rel="stylesheet" href="{{url}}css/style.css?ver={{version}}">
     <meta name="description"
           content="ابزار ساده برای اشتراک‌گذاری متن، یادداشت و فایل‌های ضروری. بدون ثبت‌نام، لینک ایجاد کنید و محتوا را به راحتی منتقل کنید.">
@@ -22,6 +22,8 @@
     <meta name="theme-color" content="#e50561">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <script src="{{url}}js/i18n.js?ver={{version}}"></script>
+    <script src="{{url}}js/modal.js?ver={{version}}"></script>
     <script defer="defer" src="{{url}}js/app.js?ver={{version}}"></script>
     <script defer="defer" src="{{url}}js/file-upload.js?ver={{version}}"></script>
 </head>
@@ -31,50 +33,39 @@
     <div class="floating-sphere sphere-2"></div>
     <div class="floating-sphere sphere-3"></div>
 </div>
-<header>
-    <div>
-        <div class="right">
-            <ul>
-                <li><a href="{{url}}history">لینک های شما</a></li>
-            </ul>
-        </div>
-        <div class="left"><a href="{{url}}"><img src="{{url}}icon.png?ver={{version}}" alt="TShare.ir" class="logo">
-            <h1>TShare.ir</h1></a></div>
-    </div>
-</header>
+{% include "partials/header.html" %}
 <div class="content">
-    <div class="header"><h2>اشتراک امن و موقت متن و فایل</h2>
-        <p>ابزار ساده برای اشتراک‌گذاری یادداشت‌ها، متن‌های کوتاه و فایل‌های ضروری.<br/>بدون ثبت‌نام، لینک ایجاد کنید و به اشتراک
-            بگذارید؛ مثل ارسال آدرس، شماره تماس، تصویر، سند یا دستورالعمل‌های کاری.</p></div>
+    <div class="header"><h2 data-i18n="home.title">Secure, ephemeral text & file sharing</h2>
+        <p data-i18n="home.subtitle" data-i18n-html></p></div>
     <div class="home">
-        <button type="button" class="submit-btn" id="createLink">اشتراک‌گذاری</button>
-        <button type="button" class="show-btn" id="showLonk">مشاهده</button>
+        <button type="button" class="submit-btn" id="createLink" data-i18n="home.share">Create share</button>
+        <button type="button" class="show-btn" id="showLink" data-i18n="home.view">Open link</button>
     </div>
 
     <form class="form" id="showForm">
         <div class="input-wrapper" id="show-id-wrapper">
             <label for="show-id">
                 <input type="text" maxlength="6" minlength="6" id="show-id" name="show-id" autofocus autocapitalize="off" autocomplete="off"
-                       placeholder="شناسه خود را وارد کنید">
+                       data-i18n-placeholder="home.showIdPlaceholder" placeholder="Enter your 6-character ID">
             </label>
         </div>
         <div class="footer">
-            <button type="submit" class="submit-show-btn">مشاهده اشتراک‌گذاری</button>
-            <button type="button" class="back-btn">بازگشت</button>
+            <button type="submit" class="submit-show-btn" data-i18n="home.showSubmit">View share</button>
+            <button type="button" class="back-btn" data-i18n="home.back">Back</button>
         </div>
     </form>
     <form class="form" id="shareForm">
-        <div class="alert" style="margin-bottom: 0">
-            <p>کاربر گرامی ، حسب نظر مقام قضایی لطفا از ارسال فایل‌ها و کانفیگ‌های مربوط به VPN خودداری کنید. 😉</p>
+        <div class="alert alert--vpn" data-show-locale="fa" hidden style="margin-bottom: 0">
+            <p data-i18n="home.vpnNotice"></p>
         </div>
         <div class="input-wrapper"><label for="note"><textarea
-                placeholder="تهران، خیابان ولیعصر، نرسیده به میدان ونک، پلاک ۱۲۳ - کد پستی: 123456789" name="note"
+                data-i18n-placeholder="home.notePlaceholder" placeholder="" name="note"
                 id="note" cols="30" rows="5" maxlength="10000"{% if note_required %} required{% endif %}></textarea></label>
-            <div class="input-wrapper-counter"><span>10000</span><span>/</span><span class="used">0</span></div>
+            <div class="input-wrapper-counter" data-max="10000"><span class="counter-max">10000</span><span>/</span><span class="used">0</span></div>
         </div>
         {% if file_upload_enabled %}
         <div class="file-wrapper" id="fileWrapper">
-            <span class="file-wrapper-title">پیوست فایل (اختیاری)</span>
+            <span class="file-wrapper-title" data-i18n="home.fileAttach">Attach file (optional)</span>
             <div class="file-upload-zone" id="fileUploadZone">
                 <label for="file" class="file-upload-card" id="fileUploadCard">
                     <input type="file" name="file" id="file" class="file-input-hidden" accept="{{ file_accept_attr }}"
@@ -86,63 +77,59 @@
                             <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         </svg>
                     </span>
-                    <span class="file-upload-prompt" id="fileUploadPrompt">کلیک، کشیدن به صفحه، یا Ctrl+V برای پیوست</span>
+                    <span class="file-upload-prompt" id="fileUploadPrompt" data-i18n="home.filePrompt"></span>
                     <span class="file-selected-row" id="fileSelectedRow" hidden>
                         <span class="file-selected-name" id="fileSelectedName" dir="ltr"></span>
                         <span class="file-selected-size" id="fileSelectedSize"></span>
                     </span>
                 </label>
-                <button type="button" class="file-upload-clear" id="fileClearBtn" hidden aria-label="حذف فایل">حذف</button>
+                <button type="button" class="file-upload-clear" id="fileClearBtn" hidden data-i18n-aria="home.fileClear" aria-label="Remove">×</button>
             </div>
-            <span class="file-hint">حداکثر {{ file_max_size_mb }} مگابایت — فرمت‌های مجاز: {{ file_allowed_extensions_display }}</span>
+            <span class="file-hint" data-i18n="home.fileHint" data-i18n-params='{"maxMb":"{{ file_max_size_mb }}","extensions":"{{ file_allowed_extensions_display }}"}'></span>
         </div>
         {% endif %}
         <div class="security-options">
             <div class="security-option"><input type="checkbox" id="oneTimeUse" name="oneTimeUse"> <label
-                    for="oneTimeUse">یک‌بار مصرف</label></div>
+                    for="oneTimeUse" data-i18n="home.oneTime">Burn after read</label></div>
             <div class="security-option"><input type="checkbox" id="restrictIp" name="restrictIp"> <label
-                    for="restrictIp">محدود به IP خاص</label></div>
+                    for="restrictIp" data-i18n="home.restrictIp">Restrict to IP</label></div>
             <div class="security-option"><input type="checkbox" id="requirePassword" name="requirePassword"> <label
-                    for="requirePassword">نیاز به رمز عبور</label></div>
+                    for="requirePassword" data-i18n="home.requirePassword">Password required</label></div>
         </div>
         <div class="password-wrapper" id="passwordWrapper" style="display: none;"><label for="password">
             <input maxlength="24" type="password" id="password" name="password" autocapitalize="off" autocomplete="off"
-                   placeholder="رمز عبور را وارد کنید"></label></div>
+                   data-i18n-placeholder="home.passwordPlaceholder" placeholder=""></label></div>
         <div class="ip-wrapper" id="ipWrapper" style="display: none;"><label for="ip"><input dir="ltr" id="ip" name="ip"
                                                                                              placeholder="5.10.x.x"
                                                                                              pattern="^(\d{1,3}\.){3}\d{1,3}$"></label>
         </div>
         <div class="options">
-            <div class="option-row"><label for="expiry">مدت انقضا:</label> <select name="expiry" id="expiry">
-                <option value="5" selected="selected">۵ دقیقه</option>
-                <option value="10">۱۰ دقیقه</option>
-                <option value="30">۳۰ دقیقه</option>
-                <option value="60">۱ ساعت</option>
-                <option value="180">۳ ساعت</option>
-                <option value="360">۶ ساعت</option>
-                <option value="720">۱۲ ساعت</option>
-                <option value="1440">۲۴ ساعت</option>
+            <div class="option-row"><label for="expiry" data-i18n="home.expiryLabel">Expires in:</label> <select name="expiry" id="expiry" data-i18n-options="home.expiry">
+                <option value="5" selected="selected">5 min</option>
+                <option value="10">10 min</option>
+                <option value="30">30 min</option>
+                <option value="60">1 hour</option>
+                <option value="180">3 hours</option>
+                <option value="360">6 hours</option>
+                <option value="720">12 hours</option>
+                <option value="1440">24 hours</option>
             </select></div>
-            <div class="option-row"><label for="maxViews">حداکثر تعداد بازدید:</label> <select name="maxViews"
-                                                                                               id="maxViews">
-                <option value="v1">۱ بار</option>
-                <option value="v5">۵ بار</option>
-                <option value="v10">۱۰ بار</option>
-                <option value="unlimited" selected="selected">نامحدود</option>
+            <div class="option-row"><label for="maxViews" data-i18n="home.maxViewsLabel">Max views:</label> <select name="maxViews"
+                                                                                               id="maxViews" data-i18n-options="home.views">
+                <option value="v1">1 view</option>
+                <option value="v5">5 views</option>
+                <option value="v10">10 views</option>
+                <option value="unlimited" selected="selected">Unlimited</option>
             </select></div>
         </div>
         <div class="footer">
-            <button type="submit" class="submit-btn">ایجاد اشتراک‌گذاری</button>
-            <button type="button" class="back-btn">بازگشت</button>
+            <button type="submit" class="submit-btn" data-i18n="home.createSubmit">Create share</button>
+            <button type="button" class="back-btn" data-i18n="home.back">Back</button>
         </div>
     </form>
-    <p class="stats">تا این لحظه، <span>{{ stats.text_shares }}</span> متن و <span>{{ stats.file_shares }}</span> فایل به اشتراک گذاشته شده
-        (<span>{{ stats.total_shares }}</span> اشتراک‌گذاری).</p>
-    <p class="stats stats-muted">آپلود <span>{{ stats.uploaded_size }}</span> · دانلود <span>{{ stats.downloaded_size }}</span></p>
+    <p class="stats" data-i18n="home.stats" data-stat-text="{{ stats.text_shares }}" data-stat-file="{{ stats.file_shares }}" data-stat-total="{{ stats.total_shares }}"></p>
+    <p class="stats stats-muted" data-i18n="home.statsTransfer" data-stat-up="{{ stats.bytes_uploaded }}" data-stat-down="{{ stats.bytes_downloaded }}"></p>
 </div>
-<footer>
-    <div><a href="https://habibi-dev.blogfa.com/page/support" class="donate-link" target="_blank">با یه قهوه ازم حمایت کن ☕</a>
-        <p>Powered by Rust 🦀 - v{{version}}</p></div>
-</footer>
+{% include "partials/footer.html" %}
 </body>
 </html>

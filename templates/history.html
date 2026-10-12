@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="{{url}}css/style.css?ver={{version}}">
   <link rel="icon" href="{{url}}favicon.ico?ver={{version}}" sizes="any">
   <meta name="theme-color" content="#e50561">
+  <script src="{{url}}js/i18n.js?ver={{version}}"></script>
+  <script src="{{url}}js/modal.js?ver={{version}}"></script>
   <script defer="defer" src="{{url}}js/app.js?ver={{version}}"></script>
 </head>
 <body>
@@ -15,40 +17,19 @@
   <div class="floating-sphere sphere-2"></div>
   <div class="floating-sphere sphere-3"></div>
 </div>
-<header>
-  <div>
-    <div class="right">
-      <ul>
-        <li>
-          <a href="{{url}}history">لینک های شما</a>
-        </li>
-      </ul>
-    </div>
-    <div class="left">
-      <a href="{{url}}">
-        <img src="{{url}}icon.png?ver={{version}}" alt="TShare.ir" class="logo">
-        <h1>TShare.ir</h1>
-      </a>
-    </div>
-  </div>
-</header>
+{% include "partials/header.html" %}
 
 <div class="content">
   <div class="header">
-    <h2>تاریخچه اشتراک گذاری شما</h2>
-    <p>
-      در زیر لیستی از لینک هایی که شما اشتراک گذاشته اید را میتوانید مشاهده کنید.
-    </p>
+    <h2 data-i18n="history.title">Your share history</h2>
+    <p data-i18n="history.subtitle"></p>
   </div>
   <ul class="history-list"></ul>
   <a href="{{url}}" class="submit-btn" style="flex: 0; font-size: 1rem; text-decoration: none;display: flex">
-    بازگشت به خانه
+    <span data-i18n="history.back">Back to home</span>
   </a>
 </div>
 
-<footer>
-  <div><a href="https://habibi-dev.blogfa.com/page/support" class="donate-link" target="_blank">با یه قهوه ازم حمایت کن ☕</a>
-    <p>Powered by Rust 🦀 - v{{version}}</p></div>
-</footer>
+{% include "partials/footer.html" %}
 </body>
 </html>

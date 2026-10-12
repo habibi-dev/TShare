@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{url}}css/style.css?ver={{version}}">
     <link rel="icon" href="{{url}}favicon.ico?ver={{version}}" sizes="any">
     <meta name="theme-color" content="#e50561">
+    <script src="{{url}}js/i18n.js?ver={{version}}"></script>
 </head>
 <body>
 <div class="background-animation">
@@ -14,23 +15,7 @@
     <div class="floating-sphere sphere-2"></div>
     <div class="floating-sphere sphere-3"></div>
 </div>
-<header>
-    <div>
-        <div class="right">
-            <ul>
-                <li>
-                    <a href="{{url}}history">لینک های شما</a>
-                </li>
-            </ul>
-        </div>
-        <div class="left">
-            <a href="{{url}}">
-                <img src="{{url}}icon.png?ver={{version}}" alt="TShare.ir" class="logo">
-                <h1>TShare.ir</h1>
-            </a>
-        </div>
-    </div>
-</header>
+{% include "partials/header.html" %}
 
 <div class="content">
     <h1 style="font-size: 6rem; margin: 0; color: #e50561;">{{code}}</h1>
@@ -39,13 +24,10 @@
 
     <a href="/" class="submit-btn"
        style="padding: 14px 20px; font-size: 1rem; text-decoration: none;font-weight: 300;flex: 0">
-        بازگشت به خانه
+        <span data-i18n="error.backHome">Back to home</span>
     </a>
 </div>
 
-<footer>
-    <div><a href="https://habibi-dev.blogfa.com/page/support" class="donate-link" target="_blank">با یه قهوه ازم حمایت کن ☕</a>
-        <p>Powered by Rust 🦀 - v{{version}}</p></div>
-</footer>
+{% include "partials/footer.html" %}
 </body>
 </html>

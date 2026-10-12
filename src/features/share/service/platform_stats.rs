@@ -1,5 +1,4 @@
 use crate::features::setting::service::setting_service::SettingService;
-use crate::utility::format::{format_bytes, format_count};
 use lazy_static::lazy_static;
 use sea_orm::DbErr;
 use std::sync::RwLock;
@@ -33,21 +32,21 @@ pub struct PlatformStats {
 
 #[derive(Debug, Clone)]
 pub struct PlatformStatsDisplay {
-    pub total_shares: String,
-    pub text_shares: String,
-    pub file_shares: String,
-    pub uploaded_size: String,
-    pub downloaded_size: String,
+    pub total_shares: i64,
+    pub text_shares: i64,
+    pub file_shares: i64,
+    pub bytes_uploaded: u64,
+    pub bytes_downloaded: u64,
 }
 
 impl PlatformStatsDisplay {
     pub fn from_stats(stats: &PlatformStats) -> Self {
         Self {
-            total_shares: format_count(stats.total_shares),
-            text_shares: format_count(stats.text_shares),
-            file_shares: format_count(stats.file_shares),
-            uploaded_size: format_bytes(stats.bytes_uploaded),
-            downloaded_size: format_bytes(stats.bytes_downloaded),
+            total_shares: stats.total_shares,
+            text_shares: stats.text_shares,
+            file_shares: stats.file_shares,
+            bytes_uploaded: stats.bytes_uploaded,
+            bytes_downloaded: stats.bytes_downloaded,
         }
     }
 }

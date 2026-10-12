@@ -1,9 +1,12 @@
 (function () {
   function formatFileSize(bytes) {
-    if (bytes < 1024) return bytes + ' بایت';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' کیلو';
-    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' مگ';
-    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' گیگ';
+    if (window.TShareI18n && typeof TShareI18n.formatBytes === 'function') {
+      return TShareI18n.formatBytes(bytes);
+    }
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
   }
 
   function setHidden(el, hidden) {
@@ -213,5 +216,7 @@
 
     setupDragAndDrop(fileInput, fileWrapper, refreshUi);
     setupPaste(fileInput, refreshUi);
+
+    document.addEventListener('tshare:locale', refreshUi);
   });
 })();

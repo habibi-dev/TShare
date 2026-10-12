@@ -48,20 +48,23 @@ where
         }
 
         let result = async {
-            let json_string: String = redis.get(&redis_key).await.map_err(|e| {
+            let json_string: Option<String> = redis.get(&redis_key).await.map_err(|e| {
                 error!(target: "system", "Redis GET failed during atomic update: {}", e);
                 ShareError::new(
-                    StatusCode::NOT_FOUND,
-                    "اشتراک گذاری یافت نشد یا منقضی شده است.".to_string(),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "خطا در دریافت اطلاعات".to_string(),
                 )
             })?;
 
-            if json_string.is_empty() {
-                return Err(ShareError::new(
-                    StatusCode::NOT_FOUND,
-                    "اشتراک گذاری یافت نشد یا منقضی شده است.".to_string(),
-                ));
-            }
+            let json_string = match json_string.filter(|s| !s.is_empty()) {
+                Some(s) => s,
+                None => {
+                    return Err(ShareError::new(
+                        StatusCode::NOT_FOUND,
+                        "اشتراک گذاری یافت نشد یا منقضی شده است.".to_string(),
+                    ));
+                }
+            };
 
             let ttl: i64 = redis.ttl(&redis_key).await.map_err(|e| {
                 error!(target: "system", "Redis TTL failed: {}", e);

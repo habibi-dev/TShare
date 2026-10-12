@@ -107,21 +107,23 @@ impl ShareRetrieve {
         let mut redis = state.redis.as_ref().clone();
         let redis_key = key_prefix(&key.to_string());
 
-        let json_string: String = redis.get(&redis_key).await.map_err(|e| {
+        let json_string: Option<String> = redis.get(&redis_key).await.map_err(|e| {
             error!(target: "system", "Redis GET failed for key {}: {}", key, e);
             ShareError::new(
-                StatusCode::NOT_FOUND,
-                "اشتراک گذاری یافت نشد یا منقضی شده است.".to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "خطا در دریافت اطلاعات".to_string(),
             )
         })?;
 
-        if json_string.is_empty() {
-            error!(target: "system", "Share not found: {}", key);
-            return Err(ShareError::new(
-                StatusCode::NOT_FOUND,
-                "اشتراک گذاری یافت نشد یا منقضی شده است.".to_string(),
-            ));
-        }
+        let json_string = match json_string.filter(|s| !s.is_empty()) {
+            Some(s) => s,
+            None => {
+                return Err(ShareError::new(
+                    StatusCode::NOT_FOUND,
+                    "اشتراک گذاری یافت نشد یا منقضی شده است.".to_string(),
+                ));
+            }
+        };
 
         serde_json::from_str(&json_string).map_err(|e| {
             error!(target: "system", "JSON deserialization failed: {}", e);

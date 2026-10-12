@@ -4,6 +4,10 @@
     root.TShareI18n && typeof root.TShareI18n.t === "function"
       ? root.TShareI18n.t(key, params)
       : key;
+  const apiError = (payload) =>
+    root.TShareI18n && typeof root.TShareI18n.apiErrorFromPayload === "function"
+      ? root.TShareI18n.apiErrorFromPayload(payload)
+      : payload?.error?.message || payload?.message || i18n("errors.requestFailed");
   const notify = {
     error: (m) =>
       window.TShareModal ? TShareModal.error(m) : window.alert(m),
@@ -51,8 +55,7 @@
                 navigator.clipboard
                   .writeText(t.value)
                   .then(() => {
-                    (console.log("متن کپی شد!"),
-                      notify.success(i18n("toast.copyTextSuccess")));
+                    notify.success(i18n("toast.copyTextSuccess"));
                   })
                   .catch((e) => {
                     (console.error("Error occurred while copying:", e),
@@ -105,8 +108,8 @@
               try {
                 navigator
                   .share({
-                    title: "اشتراک امن و موقت متن",
-                    text: "\nاشتراک امن و موقت متن",
+                    title: i18n("show.shareTitle"),
+                    text: i18n("show.shareText"),
                     url: window.location.href,
                   })
                   .then();
@@ -116,8 +119,7 @@
                     navigator.clipboard
                       .writeText(e)
                       .then(() => {
-                        (console.log("آدرس صفحه کپی شد!"),
-                          notify.success(i18n("toast.copyUrlSuccess")));
+                        notify.success(i18n("toast.copyUrlSuccess"));
                       })
                       .catch((e) => {
                         (console.error("Error occurred while copying URL:", e),
@@ -193,7 +195,11 @@
       991() {
         function e(e, t) {
           const n = e.value.length;
-          ((t.innerHTML = n.toString()),
+          const fmt = (v) =>
+            root.TShareI18n && typeof root.TShareI18n.formatLocaleInt === "function"
+              ? root.TShareI18n.formatLocaleInt(v)
+              : String(v);
+          ((t.textContent = fmt(n)),
             n > 9999 &&
               ((e.value = e.value.substring(0, 1e4)),
               notify.error(i18n("errors.charLimit"))));
@@ -328,7 +334,9 @@
             (i.disabled = !0));
           const S = (p) => {
             i.textContent =
-              f && p >= 0 ? `در حال ایجاد... ${p}%` : "در حال ایجاد...";
+              f && p >= 0
+                ? i18n("home.creatingPercent", { percent: p })
+                : i18n("home.creating");
           };
           S(-1);
           try {
@@ -351,13 +359,7 @@
                   else
                     try {
                       const e = JSON.parse(x.responseText);
-                      k(
-                        new Error(
-                          e?.error?.message ||
-                            e?.message ||
-                            i18n("errors.shareCreate"),
-                        ),
-                      );
+                      k(new Error(apiError(e) || i18n("errors.shareCreate")));
                     } catch {
                       k(new Error(i18n("errors.shareCreate")));
                     }
@@ -369,9 +371,7 @@
               const t = await fetch("/api/share", { method: "POST", body: w });
               if (!t.ok) {
                 const e = await t.json().catch(() => null);
-                throw new Error(
-                  e?.error?.message || e?.message || i18n("errors.shareCreate"),
-                );
+                throw new Error(apiError(e) || i18n("errors.shareCreate"));
               }
               n = await t.json();
             }
@@ -389,7 +389,8 @@
             (console.error("Error:", e),
               notify.error(e.message || i18n("errors.shareCreateRetry")));
           } finally {
-            ((i.disabled = !1), (i.textContent = "ایجاد لینک اشتراک‌گذاری"));
+            ((i.disabled = !1),
+              (i.textContent = i18n("home.createSubmit")));
           }
         });
     }),
@@ -422,14 +423,10 @@
                 try {
                   const n = window.location.href,
                     o = new e("links").get({});
-                  if (((t.textContent = "در حال حذف..."), !o.hasOwnProperty(n)))
+                  if (((t.textContent = i18n("show.deleting")), !o.hasOwnProperty(n)))
                     throw new Error(i18n("errors.deleteNoPermission"));
-                  if (
-                    !confirm(
-                      "آیا از حذف این اشتراک گذاری اطمینان دارید؟ این عمل غیرقابل بازگشت است!",
-                    )
-                  )
-                    return void (t.textContent = "حذف این اشتراک گذاری");
+                  if (!confirm(i18n("show.deleteConfirm")))
+                    return void (t.textContent = i18n("show.delete"));
                   const { token: r, id: d } = o[n];
                   if (
                     !(
@@ -447,7 +444,7 @@
                 } catch (e) {
                   (console.error("Error:", e), notify.error(e.message));
                 } finally {
-                  ((t.disabled = !1), (t.textContent = "حذف این اشتراک گذاری"));
+                  ((t.disabled = !1), (t.textContent = i18n("show.delete")));
                 }
               })
             : t.remove()

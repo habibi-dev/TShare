@@ -142,9 +142,7 @@ impl ShareController {
                     return crate::features::home::controller::ShowPasswordTemplate {
                         version: context.version,
                         url: context.url,
-                        message: error.message.to_string().parse().unwrap_or(
-                            "برای مشاهده این متن وارد کردن پسورد الزامی می باشد.".to_string(),
-                        ),
+                        password_prompt: "view".to_string(),
                     }
                     .into_response();
                 }
@@ -205,9 +203,7 @@ impl ShareController {
                     return crate::features::home::controller::ShowPasswordTemplate {
                         version: context.version,
                         url: context.url,
-                        message: error.message.to_string().parse().unwrap_or(
-                            "برای دانلود فایل وارد کردن پسورد الزامی می باشد.".to_string(),
-                        ),
+                        password_prompt: "download".to_string(),
                     }
                     .into_response();
                 }

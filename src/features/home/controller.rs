@@ -104,7 +104,8 @@ pub struct ShowTemplate {
 pub struct ShowPasswordTemplate {
     pub(crate) version: String,
     pub(crate) url: String,
-    pub(crate) message: String,
+    /// `view` or `download` — drives client i18n for the password prompt.
+    pub(crate) password_prompt: String,
 }
 
 pub struct HomeController;

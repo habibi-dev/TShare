@@ -37,6 +37,8 @@
         expiryLabel: "Expires in:",
         maxViewsLabel: "Max views:",
         createSubmit: "Create share",
+        creating: "Creating…",
+        creatingPercent: "Creating… {percent}%",
         stats: "So far, {text} text and {file} file shares ({total} total).",
         statsTransfer: "Uploaded {up} · Downloaded {down}",
         expiry: {
@@ -56,6 +58,11 @@
         copy: "Copy text",
         share: "Share",
         delete: "Delete this share",
+        deleting: "Deleting…",
+        deleteConfirm:
+          "Delete this share permanently? This cannot be undone.",
+        shareTitle: "TShare.ir — Secure temporary sharing",
+        shareText: "Secure temporary text and file share",
         backHome: "Back to home",
         download: "Download",
         fileLabel: "Attachment",
@@ -63,8 +70,24 @@
         views: "Viewed {n} time(s) so far.",
         idCopied: "ID copied",
       },
-      password: { view: "View", passwordPlaceholder: "Enter password" },
-      error: { backHome: "Back to home" },
+      password: {
+        view: "View",
+        passwordPlaceholder: "Enter password",
+        viewRequired: "Enter the password to view this share.",
+        downloadRequired: "Enter the password to download the file.",
+      },
+      error: {
+        backHome: "Back to home",
+        pages: {
+          "400": { title: "Bad request", message: "The request could not be processed." },
+          "401": { title: "Unauthorized", message: "You do not have access to this content." },
+          "403": { title: "Forbidden", message: "Access to this share is not allowed." },
+          "404": { title: "Not found", message: "The link may be wrong or the content was removed." },
+          "410": { title: "Gone", message: "This share has expired or was removed." },
+          "429": { title: "Too many requests", message: "Please wait a moment and try again." },
+          "500": { title: "Server error", message: "Something went wrong on our side. Please try again later." },
+        },
+      },
       theme: { light: "Light mode", dark: "Dark mode" },
       aria: { langToggle: "Switch language", themeToggle: "Toggle color theme" },
       modal: { ok: "OK", titleError: "Something went wrong", titleSuccess: "Success" },
@@ -90,6 +113,8 @@
         deleteFailed: "Could not delete the share.",
         deleteNoPermission:
           "Cannot delete this share. The link token was not found in this browser.",
+        requestFailed: "Something went wrong. Please try again.",
+        rateLimited: "Too many requests. Please try again in a few seconds.",
       },
     },
     fa: {
@@ -122,6 +147,8 @@
         expiryLabel: "مدت انقضا:",
         maxViewsLabel: "حداکثر تعداد بازدید:",
         createSubmit: "ایجاد اشتراک‌گذاری",
+        creating: "در حال ایجاد...",
+        creatingPercent: "در حال ایجاد... {percent}%",
         stats: "تا این لحظه، {text} متن و {file} فایل به اشتراک گذاشته شده ({total} اشتراک‌گذاری).",
         statsTransfer: "آپلود {up} · دانلود {down}",
         expiry: {
@@ -141,6 +168,11 @@
         copy: "کپی متن",
         share: "اشتراک گذاری",
         delete: "حذف این اشتراک گذاری",
+        deleting: "در حال حذف...",
+        deleteConfirm:
+          "آیا از حذف این اشتراک گذاری اطمینان دارید؟ این عمل غیرقابل بازگشت است!",
+        shareTitle: "اشتراک امن و موقت متن",
+        shareText: "اشتراک امن و موقت متن",
         backHome: "بازگشت به خانه",
         download: "دانلود",
         fileLabel: "پیوست فایل",
@@ -148,8 +180,24 @@
         views: "تا این لحظه، {n} بار مشاهده شده است.",
         idCopied: "شناسه کپی شد",
       },
-      password: { view: "مشاهده", passwordPlaceholder: "رمز عبور را وارد کنید" },
-      error: { backHome: "بازگشت به خانه" },
+      password: {
+        view: "مشاهده",
+        passwordPlaceholder: "رمز عبور را وارد کنید",
+        viewRequired: "برای مشاهده این متن وارد کردن پسورد الزامی می باشد.",
+        downloadRequired: "برای دانلود فایل وارد کردن پسورد الزامی می باشد.",
+      },
+      error: {
+        backHome: "بازگشت به خانه",
+        pages: {
+          "400": { title: "درخواست نامعتبر", message: "درخواست قابل پردازش نبود." },
+          "401": { title: "عدم دسترسی", message: "به این محتوا دسترسی ندارید." },
+          "403": { title: "ممنوع", message: "دسترسی به این اشتراک مجاز نیست." },
+          "404": { title: "یافت نشد", message: "ممکن است لینک اشتباه باشد یا محتوا حذف شده باشد." },
+          "410": { title: "منقضی شده", message: "این اشتراک منقضی یا حذف شده است." },
+          "429": { title: "درخواست زیاد", message: "لطفاً کمی صبر کنید و دوباره تلاش کنید." },
+          "500": { title: "خطای سرور", message: "مشکلی در سرور رخ داد. لطفاً بعداً تلاش کنید." },
+        },
+      },
       theme: { light: "حالت روشن", dark: "حالت تاریک" },
       aria: { langToggle: "تغییر زبان", themeToggle: "تغییر تم رنگی" },
       modal: { ok: "باشه", titleError: "خطا", titleSuccess: "انجام شد" },
@@ -175,6 +223,8 @@
         deleteFailed: "خطا در حذف لینک",
         deleteNoPermission:
           "خطا در حذف لینک. امکان حذف لینک برای شما وجود ندارد. توکن یافت نشد!",
+        requestFailed: "خطایی رخ داد. لطفاً دوباره تلاش کنید.",
+        rateLimited: "تعداد درخواست‌ها زیاد است. لطفاً چند ثانیه بعد دوباره تلاش کنید.",
       },
     },
   };
@@ -235,10 +285,67 @@
   function localizeParams(params) {
     if (!params || typeof params !== "object") return params;
     const out = { ...params };
-    ["n", "maxMb", "text", "file", "total"].forEach((key) => {
+    ["n", "maxMb", "text", "file", "total", "percent"].forEach((key) => {
       if (out[key] != null && out[key] !== "") out[key] = formatLocaleInt(out[key]);
     });
     return out;
+  }
+
+  function apiErrorFromPayload(payload) {
+    const code = payload?.error?.code || payload?.code;
+    const serverMsg = payload?.error?.message || payload?.message;
+    if (locale === "fa" && serverMsg) return String(serverMsg);
+    if (code === "429") return t("errors.rateLimited");
+    const page = code && messages[locale].error.pages[code];
+    if (page?.message) return page.message;
+    return t("errors.requestFailed");
+  }
+
+  function applyMetaTags() {
+    const title = t("meta.title");
+    const desc = t("meta.description");
+    const titleEl = document.querySelector("title");
+    if (titleEl && !titleEl.hasAttribute("data-i18n")) titleEl.textContent = title;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.setAttribute("content", desc);
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute("content", title);
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute("content", desc);
+    const ogAlt = document.querySelector('meta[property="og:image:alt"]');
+    if (ogAlt) ogAlt.setAttribute("content", title);
+    const ogLocale = document.querySelector('meta[property="og:locale"]');
+    if (ogLocale) ogLocale.setAttribute("content", locale === "fa" ? "fa_IR" : "en_US");
+  }
+
+  function applyManifestLink() {
+    const link = document.querySelector('link[rel="manifest"]');
+    if (!link) return;
+    const en = link.getAttribute("data-manifest-en");
+    const fa = link.getAttribute("data-manifest-fa");
+    if (en && fa) link.setAttribute("href", locale === "fa" ? fa : en);
+  }
+
+  function applyErrorPage() {
+    const root = document.querySelector("[data-error-code]");
+    if (!root) return;
+    const code = root.getAttribute("data-error-code");
+    const page = get(messages[locale].error.pages, code);
+    if (!page) return;
+    const h2 = root.querySelector("[data-error-title]");
+    const p = root.querySelector("[data-error-message]");
+    if (h2) h2.textContent = page.title;
+    if (p) p.textContent = page.message;
+    document.title = `${code} - ${page.title}`;
+  }
+
+  function applyPasswordBanner() {
+    document.querySelectorAll("[data-password-prompt]").forEach((el) => {
+      const kind = el.getAttribute("data-password-prompt");
+      const key =
+        kind === "download" ? "password.downloadRequired" : "password.viewRequired";
+      el.textContent = t(key);
+    });
   }
 
   function normalizeDigitsForLocale(str) {
@@ -357,6 +464,10 @@
     });
     applyPlatformStats();
     applyCharCounters();
+    applyMetaTags();
+    applyManifestLink();
+    applyErrorPage();
+    applyPasswordBanner();
   }
 
   function applyThemeUi() {
@@ -450,5 +561,6 @@
     formatLocaleInt,
     formatBytes,
     showCopyTooltip,
+    apiErrorFromPayload,
   };
 })(typeof globalThis !== "undefined" ? globalThis : window);

@@ -1,7 +1,8 @@
 {
   "short_name": "TShare",
-  "name": "TShare.ir - اشتراک متن و فایل موقت",
-  "description": "سریع‌ترین و امن‌ترین راه برای اشتراک متن و فایل‌های ضروری با لینک خودپاک‌شونده",
+  "name": "TShare.ir — Secure temporary sharing",
+  "description": "Share text and files with a short, self-destructing link. Fast and private.",
+  "lang": "en",
   "icons": [{
     "src": "/icon.png",
     "type": "image/png",

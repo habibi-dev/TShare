@@ -17,10 +17,10 @@
 </div>
 {% include "partials/header.html" %}
 
-<div class="content">
+<div class="content" data-error-code="{{code}}">
     <h1 style="font-size: 6rem; margin: 0; color: #e50561;">{{code}}</h1>
-    <h2 style="margin: 20px 0; font-size: 1.2rem;font-weight: bolder">{{title}}</h2>
-    <p style="font-size: 1rem; margin-bottom: 40px; opacity: 0.9; color: #4a5568">{{message}}</p>
+    <h2 data-error-title style="margin: 20px 0; font-size: 1.2rem;font-weight: bolder">{{title}}</h2>
+    <p data-error-message style="font-size: 1rem; margin-bottom: 40px; opacity: 0.9; color: #4a5568">{{message}}</p>
 
     <a href="/" class="submit-btn"
        style="padding: 14px 20px; font-size: 1rem; text-decoration: none;font-weight: 300;flex: 0">

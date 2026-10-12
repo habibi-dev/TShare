@@ -285,9 +285,16 @@
   function localizeParams(params) {
     if (!params || typeof params !== "object") return params;
     const out = { ...params };
-    ["n", "maxMb", "text", "file", "total", "percent"].forEach((key) => {
+    ["n", "maxMb", "text", "file", "total"].forEach((key) => {
       if (out[key] != null && out[key] !== "") out[key] = formatLocaleInt(out[key]);
     });
+    if (out.percent != null && out.percent !== "") {
+      const n = Math.round(Number(out.percent));
+      out.percent =
+        locale === "fa" && Number.isFinite(n)
+          ? formatLocaleInt(n)
+          : String(Number.isFinite(n) ? n : out.percent);
+    }
     return out;
   }
 

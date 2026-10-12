@@ -105,6 +105,18 @@ html[lang="en"] body .content .input-wrapper-counter {
   font-feature-settings: "lnum" 1;
 }
 
+html[lang="en"] body .content .submit-btn,
+html[lang="en"] body .content .copy,
+html[lang="en"] body .content .show,
+html[lang="en"] body .content .share,
+html[lang="en"] body .content .back-btn,
+html[lang="en"] body .content .show-btn,
+html[lang="en"] body .content .submit-show-btn {
+  font-family: "Google Sans", system-ui, sans-serif;
+  font-variant-numeric: lining-nums;
+  font-feature-settings: "lnum" 1;
+}
+
 .header-chrome {
   display: inline-flex;
   align-items: center;
